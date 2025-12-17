@@ -9,20 +9,25 @@ export const getCompatibleCases = async (req, res) => {
     const { motherboardId, gpuId, psuId } = req.body;
     console.log("🔍 Datos recibidos en req.body:", req.body);
 
+    // Verificar que al menos la motherboard esté presente
+    if (!motherboardId) {
+      return res.status(400).json({ message: "❌ Se requiere motherboard para buscar gabinetes compatibles" });
+    }
+
     // Obtener los componentes de la base de datos
     const [motherboard, gpu, psu, cases] = await Promise.all([
       prisma.componente.findUnique({
         where: { id_componente: motherboardId },
         select: { especificaciones: true },
       }),
-      prisma.componente.findUnique({
+      gpuId ? prisma.componente.findUnique({
         where: { id_componente: gpuId },
         select: { especificaciones: true },
-      }),
-      prisma.componente.findUnique({
+      }) : Promise.resolve(null),
+      psuId ? prisma.componente.findUnique({
         where: { id_componente: psuId },
         select: { especificaciones: true },
-      }),
+      }) : Promise.resolve(null),
       prisma.componente.findMany({
         where: { categoria: "Case" },
         select: {
@@ -37,18 +42,16 @@ export const getCompatibleCases = async (req, res) => {
       }),
     ]);
 
-    // Verificar si los componentes fueron encontrados
+    // Verificar si la motherboard fue encontrada (requerida)
     if (!motherboard)
       return res.status(404).json({ message: "❌ Motherboard no encontrada" });
-    if (!gpu) return res.status(404).json({ message: "❌ GPU no encontrada" });
-    if (!psu) return res.status(404).json({ message: "❌ PSU no encontrada" });
 
     // Obtener especificaciones clave
     const motherboardFormFactor =
       motherboard.especificaciones?.["Form Factor"] || "";
-    const gpuMaxLength =
-      parseInt(gpu.especificaciones?.["Length"]?.replace(" mm", ""), 10) || 0;
-    const psuFormFactor = psu.especificaciones?.["Type"] || "";
+    const gpuMaxLength = gpu ?
+      parseInt(gpu.especificaciones?.["Length"]?.replace(" mm", ""), 10) || 0 : 0;
+    const psuFormFactor = psu ? psu.especificaciones?.["Type"] || "" : "";
 
     console.log(`Factor de forma de la motherboard: ${motherboardFormFactor}`);
     console.log(`Longitud de la GPU: ${gpuMaxLength} mm`);
@@ -59,28 +62,35 @@ export const getCompatibleCases = async (req, res) => {
       const supportedFormFactors =
         pcCase.especificaciones?.["Motherboard Form Factor"] || [];
 
-      const maxGpuLengthRaw =
-        pcCase.especificaciones?.["Maximum Video Card Length"];
-      const maxGpuLength =
-        maxGpuLengthRaw && typeof maxGpuLengthRaw === "string"
-          ? parseInt(maxGpuLengthRaw.split(" mm")[0], 10) // Tomamos solo la parte en mm
-          : Infinity;
+      // Verificar compatibilidad con motherboard (siempre requerida)
+      const motherboardCompatible = supportedFormFactors.includes(motherboardFormFactor);
 
-      // Determinar compatibilidad de PSU basándonos en el "Type" del gabinete
-      const caseType = pcCase?.especificaciones?.["Type"] || "";
-      const caseSupportsATXPSU = caseType.includes("ATX");
-      const caseSupportsSFXPSU =
-        caseType.includes("SFX") || caseType.includes("Mini ITX");
+      // Verificar compatibilidad con GPU (opcional)
+      let gpuCompatible = true;
+      if (gpu && gpuMaxLength > 0) {
+        const maxGpuLengthRaw =
+          pcCase.especificaciones?.["Maximum Video Card Length"];
+        const maxGpuLength =
+          maxGpuLengthRaw && typeof maxGpuLengthRaw === "string"
+            ? parseInt(maxGpuLengthRaw.split(" mm")[0], 10)
+            : Infinity;
+        gpuCompatible = gpuMaxLength <= maxGpuLength;
+      }
 
-      const psuCompatibility =
-        (psuFormFactor === "ATX" && caseSupportsATXPSU) ||
-        (psuFormFactor.includes("SFX") && caseSupportsSFXPSU);
+      // Verificar compatibilidad con PSU (opcional)
+      let psuCompatible = true;
+      if (psu && psuFormFactor) {
+        const caseType = pcCase?.especificaciones?.["Type"] || "";
+        const caseSupportsATXPSU = caseType.includes("ATX");
+        const caseSupportsSFXPSU =
+          caseType.includes("SFX") || caseType.includes("Mini ITX");
 
-      return (
-        supportedFormFactors.includes(motherboardFormFactor) &&
-        gpuMaxLength <= maxGpuLength &&
-        psuCompatibility
-      );
+        psuCompatible =
+          (psuFormFactor === "ATX" && caseSupportsATXPSU) ||
+          (psuFormFactor.includes("SFX") && caseSupportsSFXPSU);
+      }
+
+      return motherboardCompatible && gpuCompatible && psuCompatible;
     });
 
     console.log(

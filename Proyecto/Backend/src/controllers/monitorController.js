@@ -3,20 +3,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 export const getCompatibleMonitors = async (req, res) => {
   try {
-    const { motherboardId, cpuId, gpuId, ramId, storageId, supplyId, caseId } =
-      req.body;
-    console.log("🔍 IDs recibidos:", {
-      motherboardId,
-      cpuId,
-      gpuId,
-      ramId,
-      storageId,
-      supplyId,
-      caseId,
-    });
+    const { gpuId } = req.body;
+    console.log("🔍 GPU ID recibido:", gpuId, "Tipo:", typeof gpuId);
 
-    // Validar que al menos se haya enviado una GPU
+    // Validar que se haya enviado una GPU
     if (!gpuId) {
+      console.log("❌ gpuId no proporcionado");
       return res
         .status(400)
         .json({
@@ -24,106 +16,61 @@ export const getCompatibleMonitors = async (req, res) => {
         });
     }
 
-    // Verificar que los componentes existen en la base de datos
-    const componentIds = {
-      motherboardId,
-      cpuId,
-      gpuId,
-      ramId,
-      storageId,
-      supplyId,
-      caseId,
-    };
-    const validComponents = {};
+    // Verificar que la GPU existe
+    const gpuIdNum = Number(gpuId);
+    console.log("🔄 Convirtiendo gpuId a número:", gpuId, "->", gpuIdNum);
 
-    for (const [key, id] of Object.entries(componentIds)) {
-      if (id) {
-        const component = await prisma.componente.findUnique({
-          where: { id_componente: Number(id) },
-          select: { id_componente: true },
-        });
-
-        if (!component) {
-          return res
-            .status(404)
-            .json({ error: `${key} con ID ${id} no encontrado` });
-        }
-
-        validComponents[key] = component;
-      }
-    }
-
-    console.log("✅ Todos los componentes son válidos:", validComponents);
-
-    // Obtener especificaciones de la GPU
     const gpu = await prisma.componente.findUnique({
-      where: { id_componente: Number(gpuId) },
-      select: { especificaciones: true },
+      where: { id_componente: gpuIdNum },
+      select: { id_componente: true, especificaciones: true },
     });
 
     if (!gpu) {
+      console.log("❌ GPU no encontrada con ID:", gpuId);
       return res.status(404).json({ error: "GPU no encontrada" });
     }
 
-    console.log("🖥️ Especificaciones de la GPU:", gpu.especificaciones);
+    console.log("✅ GPU válida encontrada:", gpu.id_componente);
 
-    // Extraer y normalizar el Frame Sync de la GPU
-    let gpuFrameSync = gpu.especificaciones?.["Frame Sync"];
+    // Para simplificar, devolver todos los monitores disponibles
+    // En una implementación más avanzada, se podría filtrar por resolución,
+    // frecuencia de actualización, etc. basada en la GPU
+    console.log("🔍 Buscando monitores en la base de datos...");
 
-    if (!gpuFrameSync) {
-      return res
-        .status(400)
-        .json({ error: "La GPU no tiene tecnología de sincronización" });
-    }
+    try {
+      const compatibleMonitors = await prisma.componente.findMany({
+        where: {
+          categoria: "Monitor"
+        },
+        select: {
+          id_componente: true,
+          nombre: true,
+          precio: true,
+          marca: true,
+          especificaciones: true,
+          imagenUrl: true,
+        },
+        orderBy: {
+          precio: 'asc'
+        }
+      });
 
-    let gpuFrameSyncArray = Array.isArray(gpuFrameSync)
-      ? gpuFrameSync
-      : [gpuFrameSync];
+      console.log(
+        "✅ Monitores disponibles encontrados:",
+        compatibleMonitors.length
+      );
 
-    console.log("🔄 Tecnologías Frame Sync de la GPU:", gpuFrameSyncArray);
-
-    // Mapeo de tecnologías equivalentes
-    const frameSyncEquivalents = {
-      FreeSync: ["FreeSync", "FreeSync Premium", "FreeSync Premium Pro"],
-      "G-Sync": ["G-Sync", "G-Sync Compatible"],
-    };
-
-    // Construir lista de compatibilidad
-    let frameSyncConditions = new Set();
-
-    gpuFrameSyncArray.forEach((sync) => {
-      frameSyncConditions.add(sync);
-      if (frameSyncEquivalents[sync]) {
-        frameSyncEquivalents[sync].forEach((eq) => frameSyncConditions.add(eq));
+      if (compatibleMonitors.length === 0) {
+        console.log("⚠️ No se encontraron monitores en la base de datos");
+      } else {
+        console.log("📺 Primer monitor encontrado:", compatibleMonitors[0].nombre);
       }
-    });
 
-    console.log(
-      "🔎 Buscando monitores con compatibilidad:",
-      frameSyncConditions
-    );
-
-    // Construcción de la consulta para Prisma
-    const conditions = Array.from(frameSyncConditions).map((sync) => ({
-      OR: [
-        { especificaciones: { path: ["Frame Sync"], string_contains: sync } },
-        { especificaciones: { path: ["Frame Sync"], array_contains: sync } },
-      ],
-    }));
-
-    // Buscar monitores compatibles
-    const compatibleMonitors = await prisma.componente.findMany({
-      where: {
-        categoria: "Monitor",
-        AND: conditions.length > 0 ? [{ OR: conditions }] : [],
-      },
-    });
-
-    console.log(
-      "✅ Monitores compatibles encontrados:",
-      compatibleMonitors.length
-    );
-    return res.json(compatibleMonitors);
+      return res.json(compatibleMonitors);
+    } catch (dbError) {
+      console.error("❌ Error en la consulta de monitores:", dbError);
+      throw dbError;
+    }
   } catch (error) {
     console.error("❌ Error en getCompatibleMonitors:", error);
     return res

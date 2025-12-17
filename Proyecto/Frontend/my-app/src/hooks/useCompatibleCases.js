@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 
-export const useCompatibleCases = (motherboardId, cpuId, gpuId, ramId, storageId, psuId) => {
+export const useCompatibleCases = (motherboardId, gpuId, psuId) => {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const fetchCompatibleCases = async () => {
-    if (!motherboardId || !cpuId || !gpuId || !ramId || !storageId || !psuId) {
+    if (!motherboardId) {
       setCases([]);
       return;
     }
@@ -14,7 +14,7 @@ export const useCompatibleCases = (motherboardId, cpuId, gpuId, ramId, storageId
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch('http://localhost:3001/api/get-compatible-cases', {
         method: 'POST',
         headers: {
@@ -22,10 +22,7 @@ export const useCompatibleCases = (motherboardId, cpuId, gpuId, ramId, storageId
         },
         body: JSON.stringify({
           motherboardId,
-          cpuId,
           gpuId,
-          ramId,
-          storageId,
           psuId
         }),
       });
@@ -35,11 +32,9 @@ export const useCompatibleCases = (motherboardId, cpuId, gpuId, ramId, storageId
       }
 
       const data = await response.json();
-      
-      // Verificar la estructura correcta de la respuesta
-      if (data && Array.isArray(data.compatibleCases)) {
-        setCases(data.compatibleCases);
-      } else if (Array.isArray(data)) {
+
+      // La función devuelve directamente el array de gabinetes compatibles
+      if (Array.isArray(data)) {
         setCases(data);
       } else {
         console.error('Formato de respuesta inesperado:', data);
@@ -55,7 +50,7 @@ export const useCompatibleCases = (motherboardId, cpuId, gpuId, ramId, storageId
 
   useEffect(() => {
     fetchCompatibleCases();
-  }, [motherboardId, cpuId, gpuId, ramId, storageId, psuId]);
+  }, [motherboardId, gpuId, psuId]);
 
   const refetch = () => {
     fetchCompatibleCases();

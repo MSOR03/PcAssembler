@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 
-export const useCompatibleMonitors = (motherboardId, cpuId, gpuId, ramId, storageId, psuId, caseId) => {
+export const useCompatibleMonitors = (gpuId) => {
   const [monitors, setMonitors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const fetchCompatibleMonitors = async () => {
-    if (!motherboardId || !cpuId || !gpuId || !ramId || !storageId || !psuId || !caseId) {
+    console.log("🎯 Hook useCompatibleMonitors llamado con gpuId:", gpuId);
+
+    if (!gpuId) {
+      console.log("⚠️ gpuId es null/undefined, no se hace petición");
       setMonitors([]);
       return;
     }
@@ -14,20 +17,16 @@ export const useCompatibleMonitors = (motherboardId, cpuId, gpuId, ramId, storag
     try {
       setLoading(true);
       setError(null);
-      
+
+      console.log("📡 Enviando petición a /api/get-compatible-monitors con gpuId:", gpuId);
+
       const response = await fetch('http://localhost:3001/api/get-compatible-monitors', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          motherboardId,
-          cpuId,
-          gpuId,
-          ramId,
-          storageId,
-          psuId,
-          caseId
+          gpuId: gpuId.toString() // Asegurar que sea string
         }),
       });
 
@@ -36,11 +35,9 @@ export const useCompatibleMonitors = (motherboardId, cpuId, gpuId, ramId, storag
       }
 
       const data = await response.json();
-      
-      // Verificar la estructura correcta de la respuesta
-      if (data && Array.isArray(data.compatibleMonitors)) {
-        setMonitors(data.compatibleMonitors);
-      } else if (Array.isArray(data)) {
+
+      // La función devuelve directamente el array de monitores compatibles
+      if (Array.isArray(data)) {
         setMonitors(data);
       } else {
         console.error('Formato de respuesta inesperado:', data);
@@ -56,7 +53,7 @@ export const useCompatibleMonitors = (motherboardId, cpuId, gpuId, ramId, storag
 
   useEffect(() => {
     fetchCompatibleMonitors();
-  }, [motherboardId, cpuId, gpuId, ramId, storageId, psuId, caseId]);
+  }, [gpuId]);
 
   const refetch = () => {
     fetchCompatibleMonitors();

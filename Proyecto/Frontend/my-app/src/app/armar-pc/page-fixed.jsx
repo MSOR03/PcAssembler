@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBoards } from '@/hooks/useBoards';
 import { useCompatibleCPUs } from '@/hooks/useCompatibleCPUs';
 import { useCompatibleGPUs } from '@/hooks/useCompatibleGPUs';
@@ -11,8 +11,6 @@ import { useCompatibleMonitors } from '@/hooks/useCompatibleMonitors';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getImageUrl } from '@/services/cloudinary';
-import { useAuth } from '@/context/AuthContext';
-import axios from 'axios';
 
 // Función para obtener información específica por categoría
 const getComponentSpecs = (component, category) => {
@@ -21,32 +19,32 @@ const getComponentSpecs = (component, category) => {
   switch (category) {
     case 'CPU':
       return {
-        'Núcleos': specs['Core Count'] || specs['# of CPU Cores'] || '—',
-        'Hilos': specs['Thread Count'] || specs['# of Threads'] || '—',
-        'Frecuencia Base': specs['Base Clock'] || specs['Processor Base Frequency'] || '—',
-        'Frecuencia Turbo': specs['Boost Clock'] || specs['Max Turbo Frequency'] || '—',
-        'Socket': specs['Socket'] || specs['CPU Socket'] || '—'
+        cores: specs['Core Count'] || specs['# of CPU Cores'] || 'N/A',
+        threads: specs['Thread Count'] || specs['# of Threads'] || 'N/A',
+        baseClock: specs['Base Clock'] || specs['Processor Base Frequency'] || 'N/A',
+        boostClock: specs['Boost Clock'] || specs['Max Turbo Frequency'] || 'N/A',
+        socket: specs['Socket'] || specs['CPU Socket'] || 'N/A'
       };
     case 'Video Card':
       return {
-        'VRAM': specs['VRAM'] || specs['Video Memory'] || '—',
-        'Frecuencia Base': specs['Base Clock'] || specs['Core Clock'] || '—',
-        'Frecuencia Boost': specs['Boost Clock'] || specs['Boost Clock (MHz)'] || '—',
-        'Núcleos CUDA': specs['CUDA Cores'] || specs['Stream Processors'] || '—'
+        vram: specs['VRAM'] || specs['Video Memory'] || 'N/A',
+        baseClock: specs['Base Clock'] || specs['Core Clock'] || 'N/A',
+        boostClock: specs['Boost Clock'] || specs['Boost Clock (MHz)'] || 'N/A',
+        cudaCores: specs['CUDA Cores'] || specs['Stream Processors'] || 'N/A'
       };
     case 'Memory':
       return {
-        'Capacidad': specs['Capacity'] || specs['Total Capacity'] || '—',
-        'Velocidad': specs['Speed'] || specs['Memory Speed'] || '—',
-        'Tipo': specs['Type'] || specs['Memory Type'] || '—',
-        'Latencia': specs['CAS Latency'] || '—'
+        capacity: specs['Capacity'] || specs['Total Capacity'] || 'N/A',
+        speed: specs['Speed'] || specs['Memory Speed'] || 'N/A',
+        type: specs['Type'] || specs['Memory Type'] || 'N/A',
+        latency: specs['CAS Latency'] || 'N/A'
       };
     case 'Motherboard':
       return {
-        'Socket': specs['Socket'] || specs['CPU Socket'] || specs['Socket / CPU'] || '—',
-        'Chipset': specs['Chipset'] || specs['Platform Chipset'] || '—',
-        'Factor de Forma': specs['Form Factor'] || '—',
-        'Ranuras RAM': specs['Memory Slots'] || specs['# of Memory Slots'] || '—'
+        socket: specs['Socket'] || specs['CPU Socket'] || 'N/A',
+        chipset: specs['Chipset'] || specs['Platform Chipset'] || 'N/A',
+        formFactor: specs['Form Factor'] || 'N/A',
+        ramSlots: specs['Memory Slots'] || specs['# of Memory Slots'] || 'N/A'
       };
     case 'Storage':
       return {
@@ -86,15 +84,11 @@ const ComponentSpecs = ({ component, category }) => {
   if (Object.keys(specs).length === 0) return null;
 
   return (
-    <div className="grid grid-cols-2 gap-2 text-xs mt-3">
-      {Object.entries(specs).slice(0, 4).map(([key, value]) => (
-        <div key={key} className="bg-gray-50 dark:bg-gray-700 rounded px-2 py-1">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600 dark:text-gray-400 text-xs">{key}:</span>
-            <span className={`font-semibold text-xs ${value === '—' ? 'text-gray-400' : 'text-gray-900 dark:text-white'}`}>
-              {value}
-            </span>
-          </div>
+    <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+      {Object.entries(specs).map(([key, value]) => (
+        <div key={key} className="flex justify-between">
+          <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+          <span className="font-medium">{value}</span>
         </div>
       ))}
     </div>
@@ -114,8 +108,8 @@ const ComponentCard = ({ component, category, isSelected, onSelect, onViewDetail
     >
       {/* Badge de selección */}
       {isSelected && (
-        <div className="absolute top-3 right-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-full p-2 z-10 shadow-lg animate-pulse">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="absolute top-3 right-3 bg-blue-500 text-white rounded-full p-1 z-10">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
           </svg>
         </div>
@@ -138,17 +132,12 @@ const ComponentCard = ({ component, category, isSelected, onSelect, onViewDetail
       <div className="p-4">
         {/* Marca y precio */}
         <div className="flex justify-between items-start mb-2">
-          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 rounded-full shadow-sm">
+          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">
             {component.marca}
           </span>
-          <div className="text-right">
-            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-              ${Math.round(component.precio)}
-            </span>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              USD
-            </div>
-          </div>
+          <span className="text-lg font-bold text-gray-900 dark:text-white">
+            ${component.precio}
+          </span>
         </div>
 
         {/* Nombre */}
@@ -170,9 +159,9 @@ const ComponentCard = ({ component, category, isSelected, onSelect, onViewDetail
             e.stopPropagation();
             onViewDetails(component);
           }}
-          className="w-full mt-3 px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+          className="w-full mt-3 px-3 py-2 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
         >
-          🔍 Ver Detalles
+          Ver Detalles
         </button>
       </div>
     </div>
@@ -277,66 +266,63 @@ const ComponentDetailsModal = ({ component, category, isOpen, onClose }) => {
 };
 
 // Componente de filtros
-const ComponentFilters = ({ onFilterChange, filters, availableBrands = [] }) => {
+const ComponentFilters = ({ onFilterChange, filters }) => {
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-6 mb-6 border border-blue-200 dark:border-gray-700 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-gray-700">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Buscar por nombre */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            🔍 Buscar
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Buscar
           </label>
           <input
             type="text"
             placeholder="Nombre del componente..."
             value={filters.search || ''}
             onChange={(e) => onFilterChange('search', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm transition-all"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm"
           />
         </div>
 
         {/* Filtrar por marca */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            🏷️ Marca
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Marca
           </label>
-          <select
+          <input
+            type="text"
+            placeholder="Ej: ASUS, Intel..."
             value={filters.brand || ''}
             onChange={(e) => onFilterChange('brand', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm transition-all"
-          >
-            <option value="">Todas las marcas</option>
-            {availableBrands.map(brand => (
-              <option key={brand} value={brand}>{brand}</option>
-            ))}
-          </select>
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+          />
         </div>
 
         {/* Precio mínimo */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            💰 Precio Mín
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Precio Mín
           </label>
           <input
             type="number"
             placeholder="0"
             value={filters.minPrice || ''}
             onChange={(e) => onFilterChange('minPrice', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white text-sm transition-all"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm"
           />
         </div>
 
         {/* Precio máximo */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            💰 Precio Máx
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Precio Máx
           </label>
           <input
             type="number"
             placeholder="5000"
             value={filters.maxPrice || ''}
             onChange={(e) => onFilterChange('maxPrice', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white text-sm transition-all"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm"
           />
         </div>
       </div>
@@ -345,9 +331,9 @@ const ComponentFilters = ({ onFilterChange, filters, availableBrands = [] }) => 
       <div className="flex justify-end mt-4">
         <button
           onClick={() => onFilterChange('clear')}
-          className="px-6 py-2 text-sm bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-lg hover:from-red-600 hover:to-pink-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+          className="px-4 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
         >
-          🗑️ Limpiar Filtros
+          Limpiar Filtros
         </button>
       </div>
     </div>
@@ -398,8 +384,6 @@ const ArmarPcPage = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
 
-  const { token } = useAuth();
-
   const { boards, loading: loadingBoards, error: boardsError } = useBoards();
 
   // Solo llamar a useCompatibleCPUs cuando estemos en el paso 2
@@ -439,13 +423,22 @@ const ArmarPcPage = () => {
   // Solo llamar a useCompatibleCases cuando estemos en el paso 7
   const { cases, loading: loadingCases, error: casesError } = useCompatibleCases(
     currentStep === 7 ? formData.motherboard : null,
+    currentStep === 7 ? formData.procesador : null,
     currentStep === 7 ? formData.gpu : null,
+    currentStep === 7 ? formData.ram : null,
+    currentStep === 7 ? formData.almacenamiento : null,
     currentStep === 7 ? formData.fuente : null
   );
 
   // Solo llamar a useCompatibleMonitors cuando estemos en el paso 8
   const { monitors, loading: loadingMonitors, error: monitorsError } = useCompatibleMonitors(
-    currentStep === 8 ? formData.gpu : null
+    currentStep === 8 ? formData.motherboard : null,
+    currentStep === 8 ? formData.procesador : null,
+    currentStep === 8 ? formData.gpu : null,
+    currentStep === 8 ? formData.ram : null,
+    currentStep === 8 ? formData.almacenamiento : null,
+    currentStep === 8 ? formData.fuente : null,
+    currentStep === 8 ? formData.gabinete : null
   );
 
   const steps = [
@@ -466,8 +459,6 @@ const ArmarPcPage = () => {
       ...prev,
       motherboard: board.id_componente
     }));
-    // Auto-avance al siguiente paso
-    setTimeout(() => setCurrentStep(2), 500);
   };
 
   const handleCPUSelect = (cpu) => {
@@ -476,8 +467,6 @@ const ArmarPcPage = () => {
       ...prev,
       procesador: cpu.id_componente
     }));
-    // Auto-avance al siguiente paso
-    setTimeout(() => setCurrentStep(3), 500);
   };
 
   const handleGPUSelect = (gpu) => {
@@ -486,8 +475,6 @@ const ArmarPcPage = () => {
       ...prev,
       gpu: gpu.id_componente
     }));
-    // Auto-avance al siguiente paso
-    setTimeout(() => setCurrentStep(4), 500);
   };
 
   const handleMemorySelect = (memoryItem) => {
@@ -496,8 +483,6 @@ const ArmarPcPage = () => {
       ...prev,
       ram: memoryItem.id_componente
     }));
-    // Auto-avance al siguiente paso
-    setTimeout(() => setCurrentStep(5), 500);
   };
 
   const handlePSUSelect = (psu) => {
@@ -506,8 +491,6 @@ const ArmarPcPage = () => {
       ...prev,
       fuente: psu.id_componente
     }));
-    // Auto-avance al siguiente paso
-    setTimeout(() => setCurrentStep(7), 500);
   };
 
   const handleStorageSelect = (storage) => {
@@ -516,8 +499,6 @@ const ArmarPcPage = () => {
       ...prev,
       almacenamiento: storage.id_componente
     }));
-    // Auto-avance al siguiente paso
-    setTimeout(() => setCurrentStep(6), 500);
   };
 
   const handleCaseSelect = (case_) => {
@@ -526,8 +507,6 @@ const ArmarPcPage = () => {
       ...prev,
       gabinete: case_.id_componente
     }));
-    // Auto-avance al siguiente paso
-    setTimeout(() => setCurrentStep(8), 500);
   };
 
   const handleMonitorSelect = (monitor) => {
@@ -536,8 +515,6 @@ const ArmarPcPage = () => {
       ...prev,
       monitor: monitor.id_componente
     }));
-    // Auto-avance al siguiente paso
-    setTimeout(() => setCurrentStep(9), 500);
   };
 
   const handleNext = () => {
@@ -613,60 +590,6 @@ const ArmarPcPage = () => {
     setSelectedComponent(null);
   };
 
-  // Función para guardar el ensamble
-  const handleSaveAssemble = async () => {
-    if (!token) {
-      setSaveMessage('Debes iniciar sesión para guardar tu configuración');
-      return;
-    }
-
-    if (!assembleName.trim()) {
-      setSaveMessage('Por favor ingresa un nombre para tu configuración');
-      return;
-    }
-
-    // Verificar que todos los componentes estén seleccionados
-    const requiredComponents = [
-      selectedBoard?.id_componente,
-      selectedCPU?.id_componente,
-      selectedGPU?.id_componente,
-      selectedMemory?.id_componente,
-      selectedStorage?.id_componente,
-      selectedPSU?.id_componente,
-      selectedCase?.id_componente,
-      selectedMonitor?.id_componente
-    ];
-
-    if (requiredComponents.some(id => !id)) {
-      setSaveMessage('Debes completar todos los componentes antes de guardar');
-      return;
-    }
-
-    setIsSaving(true);
-    setSaveMessage('');
-
-    try {
-      const response = await axios.post('http://localhost:3001/api/registrar-ensamble', {
-        nombre: assembleName,
-        componentes: requiredComponents
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      setSaveMessage('¡Configuración guardada exitosamente!');
-      setAssembleName('');
-      setTimeout(() => setSaveMessage(''), 3000);
-    } catch (error) {
-      console.error('Error al guardar el ensamble:', error);
-      setSaveMessage(error.response?.data?.error || 'Error al guardar la configuración');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   // Función auxiliar para obtener la categoría según el paso
   const getStepCategory = (step) => {
     const categories = {
@@ -680,13 +603,6 @@ const ArmarPcPage = () => {
       8: 'Monitor'
     };
     return categories[step] || '';
-  };
-
-  // Función para obtener marcas disponibles según el paso actual
-  const getAvailableBrands = (components) => {
-    if (!components || components.length === 0) return [];
-    const brands = [...new Set(components.map(comp => comp.marca).filter(Boolean))];
-    return brands.sort();
   };
 
   return (
@@ -703,8 +619,8 @@ const ArmarPcPage = () => {
           {/* Precio Total en Tiempo Real */}
           <div className="inline-flex items-center bg-white dark:bg-gray-800 rounded-full px-6 py-3 shadow-lg border border-gray-200 dark:border-gray-700 mt-6">
             <span className="text-gray-600 dark:text-gray-400 mr-3">Total actual:</span>
-            <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              ${Math.round(
+            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              ${(
                 (selectedBoard?.precio || 0) +
                 (selectedCPU?.precio || 0) +
                 (selectedGPU?.precio || 0) +
@@ -713,7 +629,7 @@ const ArmarPcPage = () => {
                 (selectedPSU?.precio || 0) +
                 (selectedCase?.precio || 0) +
                 (selectedMonitor?.precio || 0)
-              )}
+              ).toFixed(2)}
             </span>
           </div>
         </div>
@@ -766,7 +682,7 @@ const ArmarPcPage = () => {
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200
                   ${currentStep === 1
                     ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 hover:scale-105 shadow-lg hover:shadow-xl border-0'}`}
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:scale-105 shadow-md'}`}
                 disabled={currentStep === 1}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -779,9 +695,9 @@ const ArmarPcPage = () => {
                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                   Paso {currentStep} de 9
                 </div>
-                <div className="w-32 h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-400 to-blue-500 transition-all duration-500 rounded-full"
+                    className="h-full bg-blue-600 transition-all duration-300"
                     style={{ width: `${(currentStep / 9) * 100}%` }}
                   ></div>
                 </div>
@@ -790,17 +706,14 @@ const ArmarPcPage = () => {
               <button
                 type={currentStep === 9 ? 'submit' : 'button'}
                 onClick={currentStep === 9 ? handleSubmit : handleNext}
-                disabled={
-                  (currentStep === 1 && !selectedBoard) ||
-                  (currentStep === 2 && (!selectedBoard || !selectedCPU)) ||
-                  (currentStep === 3 && (!selectedBoard || !selectedCPU || !selectedGPU)) ||
-                  (currentStep === 4 && (!selectedBoard || !selectedCPU || !selectedGPU || !selectedMemory)) ||
-                  (currentStep === 5 && (!selectedBoard || !selectedCPU || !selectedGPU || !selectedMemory || !selectedStorage)) ||
-                  (currentStep === 6 && (!selectedBoard || !selectedCPU || !selectedGPU || !selectedMemory || !selectedStorage || !selectedPSU)) ||
-                  (currentStep === 7 && (!selectedBoard || !selectedCPU || !selectedGPU || !selectedMemory || !selectedStorage || !selectedPSU || !selectedCase)) ||
-                  (currentStep === 8 && (!selectedBoard || !selectedCPU || !selectedGPU || !selectedMemory || !selectedStorage || !selectedPSU || !selectedCase || !selectedMonitor)) ||
-                  currentStep === 9
-                }
+                disabled={(currentStep === 1 && !selectedBoard) ||
+                        (currentStep === 2 && !selectedCPU) ||
+                        (currentStep === 3 && !selectedGPU) ||
+                        (currentStep === 4 && !selectedMemory) ||
+                        (currentStep === 5 && !selectedStorage) ||
+                        (currentStep === 6 && !selectedPSU) ||
+                        (currentStep === 7 && !selectedCase) ||
+                        (currentStep === 8 && !selectedMonitor)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200
                   ${((currentStep === 1 && !selectedBoard) ||
                     (currentStep === 2 && !selectedCPU) ||
@@ -811,7 +724,7 @@ const ArmarPcPage = () => {
                     (currentStep === 7 && !selectedCase) ||
                     (currentStep === 8 && !selectedMonitor))
                       ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 hover:scale-105 shadow-lg hover:shadow-xl border-0'}`}
+                      : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 shadow-md'}`}
               >
                 {currentStep === 9 ? 'Finalizar' : 'Siguiente'}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -832,20 +745,7 @@ const ArmarPcPage = () => {
                   </p>
                 </div>
 
-                <ComponentFilters
-                  onFilterChange={handleFilterChange}
-                  filters={filters}
-                  availableBrands={getAvailableBrands(
-                    currentStep === 1 ? boards :
-                    currentStep === 2 ? cpus :
-                    currentStep === 3 ? gpus :
-                    currentStep === 4 ? memory :
-                    currentStep === 5 ? disks :
-                    currentStep === 6 ? psus :
-                    currentStep === 7 ? cases :
-                    currentStep === 8 ? monitors : []
-                  )}
-                />
+                <ComponentFilters onFilterChange={handleFilterChange} filters={filters} />
 
                 {loadingBoards ? (
                   <div className="flex justify-center py-12">
@@ -891,20 +791,7 @@ const ArmarPcPage = () => {
                   </p>
                 </div>
 
-                <ComponentFilters
-                  onFilterChange={handleFilterChange}
-                  filters={filters}
-                  availableBrands={getAvailableBrands(
-                    currentStep === 1 ? boards :
-                    currentStep === 2 ? cpus :
-                    currentStep === 3 ? gpus :
-                    currentStep === 4 ? memory :
-                    currentStep === 5 ? disks :
-                    currentStep === 6 ? psus :
-                    currentStep === 7 ? cases :
-                    currentStep === 8 ? monitors : []
-                  )}
-                />
+                <ComponentFilters onFilterChange={handleFilterChange} filters={filters} />
 
                 {loadingCPUs ? (
                   <div className="flex justify-center py-12">
@@ -954,20 +841,7 @@ const ArmarPcPage = () => {
                   </p>
                 </div>
 
-                <ComponentFilters
-                  onFilterChange={handleFilterChange}
-                  filters={filters}
-                  availableBrands={getAvailableBrands(
-                    currentStep === 1 ? boards :
-                    currentStep === 2 ? cpus :
-                    currentStep === 3 ? gpus :
-                    currentStep === 4 ? memory :
-                    currentStep === 5 ? disks :
-                    currentStep === 6 ? psus :
-                    currentStep === 7 ? cases :
-                    currentStep === 8 ? monitors : []
-                  )}
-                />
+                <ComponentFilters onFilterChange={handleFilterChange} filters={filters} />
 
                 {loadingGPUs ? (
                   <div className="flex justify-center py-12">
@@ -1017,20 +891,7 @@ const ArmarPcPage = () => {
                   </p>
                 </div>
 
-                <ComponentFilters
-                  onFilterChange={handleFilterChange}
-                  filters={filters}
-                  availableBrands={getAvailableBrands(
-                    currentStep === 1 ? boards :
-                    currentStep === 2 ? cpus :
-                    currentStep === 3 ? gpus :
-                    currentStep === 4 ? memory :
-                    currentStep === 5 ? disks :
-                    currentStep === 6 ? psus :
-                    currentStep === 7 ? cases :
-                    currentStep === 8 ? monitors : []
-                  )}
-                />
+                <ComponentFilters onFilterChange={handleFilterChange} filters={filters} />
 
                 {loadingMemory ? (
                   <div className="flex justify-center py-12">
@@ -1080,20 +941,7 @@ const ArmarPcPage = () => {
                   </p>
                 </div>
 
-                <ComponentFilters
-                  onFilterChange={handleFilterChange}
-                  filters={filters}
-                  availableBrands={getAvailableBrands(
-                    currentStep === 1 ? boards :
-                    currentStep === 2 ? cpus :
-                    currentStep === 3 ? gpus :
-                    currentStep === 4 ? memory :
-                    currentStep === 5 ? disks :
-                    currentStep === 6 ? psus :
-                    currentStep === 7 ? cases :
-                    currentStep === 8 ? monitors : []
-                  )}
-                />
+                <ComponentFilters onFilterChange={handleFilterChange} filters={filters} />
 
                 {loadingDisks ? (
                   <div className="flex justify-center py-12">
@@ -1143,20 +991,7 @@ const ArmarPcPage = () => {
                   </p>
                 </div>
 
-                <ComponentFilters
-                  onFilterChange={handleFilterChange}
-                  filters={filters}
-                  availableBrands={getAvailableBrands(
-                    currentStep === 1 ? boards :
-                    currentStep === 2 ? cpus :
-                    currentStep === 3 ? gpus :
-                    currentStep === 4 ? memory :
-                    currentStep === 5 ? disks :
-                    currentStep === 6 ? psus :
-                    currentStep === 7 ? cases :
-                    currentStep === 8 ? monitors : []
-                  )}
-                />
+                <ComponentFilters onFilterChange={handleFilterChange} filters={filters} />
 
                 {loadingPSUs ? (
                   <div className="flex justify-center py-12">
@@ -1206,20 +1041,7 @@ const ArmarPcPage = () => {
                   </p>
                 </div>
 
-                <ComponentFilters
-                  onFilterChange={handleFilterChange}
-                  filters={filters}
-                  availableBrands={getAvailableBrands(
-                    currentStep === 1 ? boards :
-                    currentStep === 2 ? cpus :
-                    currentStep === 3 ? gpus :
-                    currentStep === 4 ? memory :
-                    currentStep === 5 ? disks :
-                    currentStep === 6 ? psus :
-                    currentStep === 7 ? cases :
-                    currentStep === 8 ? monitors : []
-                  )}
-                />
+                <ComponentFilters onFilterChange={handleFilterChange} filters={filters} />
 
                 {loadingCases ? (
                   <div className="flex justify-center py-12">
@@ -1269,20 +1091,7 @@ const ArmarPcPage = () => {
                   </p>
                 </div>
 
-                <ComponentFilters
-                  onFilterChange={handleFilterChange}
-                  filters={filters}
-                  availableBrands={getAvailableBrands(
-                    currentStep === 1 ? boards :
-                    currentStep === 2 ? cpus :
-                    currentStep === 3 ? gpus :
-                    currentStep === 4 ? memory :
-                    currentStep === 5 ? disks :
-                    currentStep === 6 ? psus :
-                    currentStep === 7 ? cases :
-                    currentStep === 8 ? monitors : []
-                  )}
-                />
+                <ComponentFilters onFilterChange={handleFilterChange} filters={filters} />
 
                 {loadingMonitors ? (
                   <div className="flex justify-center py-12">
@@ -1346,8 +1155,11 @@ const ArmarPcPage = () => {
                       />
                     </div>
                     <div className="flex items-end">
-                        <button
-                          onClick={handleSaveAssemble}
+                      <button
+                        onClick={() => {
+                          // Función para guardar ensamble - implementar después
+                          console.log('Guardar ensamble:', assembleName);
+                        }}
                         disabled={isSaving}
                         className={`px-6 py-2 rounded-md font-medium transition-colors ${
                           isSaving
@@ -1533,10 +1345,4 @@ const ArmarPcPage = () => {
   );
 };
 
-const ArmarPcPageWithSuspense = () => (
-  <Suspense fallback={<div>Cargando...</div>}>
-    <ArmarPcPage />
-  </Suspense>
-);
-
-export default ArmarPcPageWithSuspense;
+export default ArmarPcPage;
