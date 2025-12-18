@@ -53,24 +53,28 @@ export const getCPUsCompatibles = async (req, res) => {
         .json({ message: "❌ La motherboard no tiene un chipset definido" });
     }
 
-    // Buscar los chipsets compatibles para el socket de la motherboard
+    // Buscar los chipsets compatibles para el socket de la motherboard en la tabla de compatibilidad
     const chipsetsCompatibles =
       await prisma.compatibilidadSocketChipset.findMany({
         where: { socket: socketCPU },
         select: { chipset: true },
       });
 
-    console.log("Chipsets Compatibles:", chipsetsCompatibles);
+    console.log("Chipsets compatibles encontrados en tabla:", chipsetsCompatibles);
 
-    if (chipsetsCompatibles.length === 0) {
+    // Si no hay chipsets en la tabla para este socket, asumimos compatibilidad directa por socket
+    // Esto permite que sockets nuevos funcionen incluso si no están en la tabla aún
+    const chipsetsArray = chipsetsCompatibles.map((c) => c.chipset);
+    const isChipsetCompatible = chipsetsArray.length === 0 || chipsetsArray.includes(chipset);
+
+    if (!isChipsetCompatible) {
+      console.warn(`⚠️ Chipset ${chipset} no encontrado en tabla de compatibilidad para socket ${socketCPU}`);
       return res.status(400).json({
-        message: "❌ No hay chipsets compatibles definidos para este socket",
+        message: `❌ El chipset ${chipset} no es compatible con procesadores ${socketCPU}. Por favor, verifica la configuración.`,
       });
     }
 
-    const chipsetsArray = chipsetsCompatibles.map((c) => c.chipset);
-
-    console.log("Chipsets Array:", chipsetsArray);
+    console.log(`✅ Chipset ${chipset} es compatible con socket ${socketCPU}`);
 
     // Buscar CPUs compatibles usando el socket
     const cpusCompatibles = await prisma.componente.findMany({
@@ -88,23 +92,16 @@ export const getCPUsCompatibles = async (req, res) => {
         averageRating: true,
         imagenUrl: true,
         precio: true,
-        especificaciones: true, // Incluye detalles como núcleos, frecuencia, TDP, etc.
+        especificaciones: true,
       },
+      orderBy: {
+        precio: 'desc'
+      }
     });
 
-    console.log("CPUs Compatibles antes del filtrado:", cpusCompatibles);
+    console.log(`✅ ${cpusCompatibles.length} CPUs compatibles encontrados con socket ${socketCPU} y chipset ${chipset}`);
 
-    // Filtrar CPUs compatibles basadas en la tabla de compatibilidad (socket y chipset)
-    const cpusCompatiblesConChipset = cpusCompatibles.filter(() => {
-      return chipsetsArray.includes(chipset);
-    });
-
-    console.log(
-      "CPUs Compatibles después del filtrado:",
-      cpusCompatiblesConChipset
-    );
-
-    res.json({ cpusCompatibles: cpusCompatiblesConChipset });
+    res.json({ cpusCompatibles });
   } catch (error) {
     console.error(error);
     res.status(500).json({

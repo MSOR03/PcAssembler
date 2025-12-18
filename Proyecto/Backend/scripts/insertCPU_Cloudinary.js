@@ -90,3 +90,6 @@ insertComponents()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+
+

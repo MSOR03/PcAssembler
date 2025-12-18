@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
+// Script para actualizar la tabla de compatibilidad sin duplicar registros
+// Primero limpia la tabla y luego inserta los nuevos datos
+
 const compatibilidadData = [
   // ==================== AMD SOCKETS ====================
   
@@ -188,15 +191,42 @@ const compatibilidadData = [
   { socket: 'LGA3647', chipset: 'Intel C629' }
 ];
 
-async function seedCompatibilidad() {
-  for (const data of compatibilidadData) {
-    await prisma.compatibilidadSocketChipset.create({
-      data,
-    });
+async function updateCompatibilidad() {
+  try {
+    console.log('🗑️  Limpiando tabla de compatibilidad anterior...');
+    
+    // Eliminar todos los registros existentes
+    const deleted = await prisma.compatibilidadSocketChipset.deleteMany({});
+    console.log(`✅ ${deleted.count} registros eliminados`);
+
+    console.log('📥 Insertando nueva tabla de compatibilidad...');
+    
+    // Insertar los nuevos registros
+    for (const data of compatibilidadData) {
+      await prisma.compatibilidadSocketChipset.create({
+        data,
+      });
+    }
+    
+    console.log(`✅ ${compatibilidadData.length} registros insertados exitosamente`);
+    console.log('🎉 Tabla de compatibilidad actualizada correctamente');
+    
+    // Mostrar resumen por socket
+    const sockets = [...new Set(compatibilidadData.map(d => d.socket))];
+    console.log(`\n📊 Resumen: ${sockets.length} sockets con compatibilidad definida`);
+    console.log('Sockets incluidos:', sockets.sort().join(', '));
+    
+  } catch (error) {
+    console.error('❌ Error al actualizar la tabla de compatibilidad:', error);
+    throw error;
   }
-  console.log('Base de datos poblada con éxito');
 }
 
-seedCompatibilidad().catch(e => console.error(e)).finally(async () => {
-  await prisma.$disconnect();
-});
+updateCompatibilidad()
+  .catch(e => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

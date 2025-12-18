@@ -46,7 +46,10 @@ export const getDisksCompatibles = async (req, res) => {
     const sataSlots = motherboard.especificaciones?.["SATA 6.0 Gb/s"] || 0;
 
     // Convertir los slots M.2 en una lista de factores de forma permitidos (2242, 2260, 2280, etc.)
-    const m2Slots = m2SlotsRaw.flatMap((slot) => slot.match(/\d{4}/g) || []);
+    // Manejar tanto arrays como strings
+    const m2Slots = Array.isArray(m2SlotsRaw) 
+      ? m2SlotsRaw.flatMap((slot) => slot.match(/\d{4}/g) || [])
+      : (typeof m2SlotsRaw === 'string' ? (m2SlotsRaw.match(/\d{4}/g) || []) : []);
 
     console.log("M.2 Slots compatibles:", m2Slots);
     console.log("SATA Slots disponibles:", sataSlots);

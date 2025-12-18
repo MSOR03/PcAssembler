@@ -28,6 +28,7 @@ export const getMotherBoards = async (req, res) => {
       averageRating: board.averageRating,
       url: board.url,
       imagenUrl: board.imagenUrl,
+      especificaciones: board.especificaciones, // Mantener objeto completo para frontend
       chipset: board.especificaciones?.["Chipset"] || "N/A",
       memoryType: board.especificaciones?.["Memory Type"] || "N/A",
       memoryMax: board.especificaciones?.["Memory Max"] || "N/A",

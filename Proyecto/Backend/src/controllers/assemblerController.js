@@ -99,7 +99,7 @@ export async function obtenerEnsamblesUsuario(req, res) {
       return res.status(401).json({ error: "Token inválido" });
     }
 
-    // Buscar los ensambles del usuario y cargar solo los nombres de los componentes y sus precios
+    // Buscar los ensambles del usuario y cargar los nombres, precios y especificaciones de los componentes
     const ensambles = await prisma.ensamble.findMany({
       where: { id_usuario: decoded.id },
       include: {
@@ -110,6 +110,8 @@ export async function obtenerEnsamblesUsuario(req, res) {
                 nombre: true,
                 categoria: true,
                 precio: true,
+                especificaciones: true,
+                imagenUrl: true,
               },
             },
           },
@@ -139,10 +141,15 @@ export async function obtenerEnsamblesUsuario(req, res) {
         componentesOrdenados[categoria] = null;
       });
 
-      // Asignar los componentes según su categoría y sumar los precios
+      // Asignar los componentes según su categoría con toda la información y sumar los precios
       ensamble.Ensamble_Componente.forEach(({ Componente }) => {
         if (ordenCategorias.includes(Componente.categoria)) {
-          componentesOrdenados[Componente.categoria] = Componente.nombre;
+          componentesOrdenados[Componente.categoria] = {
+            nombre: Componente.nombre,
+            precio: Componente.precio,
+            especificaciones: Componente.especificaciones,
+            imagenUrl: Componente.imagenUrl,
+          };
         }
         costoTotal += Componente.precio; // Sumar el precio del componente
       });
