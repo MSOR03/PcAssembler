@@ -23,56 +23,64 @@ const getComponentSpecs = (component, category) => {
       return {
         'Núcleos': specs['Core Count'] || specs['# of CPU Cores'] || '—',
         'Hilos': specs['Thread Count'] || specs['# of Threads'] || '—',
-        'Frecuencia Base': specs['Base Clock'] || specs['Processor Base Frequency'] || '—',
-        'Frecuencia Turbo': specs['Boost Clock'] || specs['Max Turbo Frequency'] || '—',
+        'Frecuencia Base': specs['Performance Core Clock'] || specs['Base Clock'] || specs['Processor Base Frequency'] || '—',
+        'Frecuencia Turbo': specs['Performance Core Boost Clock'] || specs['Boost Clock'] || specs['Max Turbo Frequency'] || '—',
+        'TDP': specs['TDP'] || '—',
         'Socket': specs['Socket'] || specs['CPU Socket'] || '—'
       };
     case 'Video Card':
       return {
-        'VRAM': specs['VRAM'] || specs['Video Memory'] || '—',
-        'Frecuencia Base': specs['Base Clock'] || specs['Core Clock'] || '—',
+        'Memoria': specs['Memory'] || specs['VRAM'] || specs['Video Memory'] || '—',
+        'Chipset': specs['Chipset'] || '—',
+        'Frecuencia Base': specs['Core Clock'] || specs['Base Clock'] || '—',
         'Frecuencia Boost': specs['Boost Clock'] || specs['Boost Clock (MHz)'] || '—',
-        'Núcleos CUDA': specs['CUDA Cores'] || specs['Stream Processors'] || '—'
+        'CUDA/Stream': specs['CUDA Cores'] || specs['Stream Processors'] || '—'
       };
     case 'Memory':
       return {
         'Capacidad': specs['Capacity'] || specs['Total Capacity'] || '—',
         'Velocidad': specs['Speed'] || specs['Memory Speed'] || '—',
         'Tipo': specs['Type'] || specs['Memory Type'] || '—',
-        'Latencia': specs['CAS Latency'] || '—'
+        'Latencia CAS': specs['CAS Latency'] || '—',
+        'Módulos': specs['Modules'] || specs['# of Modules'] || '—'
       };
     case 'Motherboard':
       return {
-        'Socket': specs['Socket'] || specs['CPU Socket'] || specs['Socket / CPU'] || '—',
+        'Socket': specs['Socket / CPU'] || specs['Socket'] || specs['CPU Socket'] || '—',
         'Chipset': specs['Chipset'] || specs['Platform Chipset'] || '—',
         'Factor de Forma': specs['Form Factor'] || '—',
-        'Ranuras RAM': specs['Memory Slots'] || specs['# of Memory Slots'] || '—'
+        'Ranuras RAM': specs['Memory Slots'] || specs['# of Memory Slots'] || '—',
+        'Tipo RAM': specs['Memory Type'] || '—'
       };
     case 'Storage':
       return {
-        capacity: specs['Capacity'] || specs['Total Capacity'] || 'N/A',
-        type: specs['Type'] || specs['Form Factor'] || 'N/A',
-        interface: specs['Interface'] || 'N/A',
-        readSpeed: specs['Sequential Read'] || 'N/A'
+        'Capacidad': specs['Capacity'] || specs['Total Capacity'] || '—',
+        'Tipo': specs['Type'] || specs['Form Factor'] || '—',
+        'Interfaz': specs['Interface'] || '—',
+        'Lectura Secuencial': specs['Sequential Read'] || '—',
+        'Escritura Secuencial': specs['Sequential Write'] || '—'
       };
     case 'Power Supply':
       return {
-        wattage: specs['Wattage'] || specs['Output Wattage'] || 'N/A',
-        efficiency: specs['Efficiency'] || specs['Efficiency Rating'] || 'N/A',
-        modular: specs['Modular'] || 'N/A'
+        'Potencia': specs['Wattage'] || specs['Output Wattage'] || '—',
+        'Certificación': specs['Efficiency Rating'] || specs['Efficiency'] || '—',
+        'Modular': specs['Modular'] || specs['Type'] || '—',
+        'Factor de Forma': specs['Form Factor'] || '—'
       };
     case 'Case':
       return {
-        formFactor: specs['Motherboard Compatibility'] || specs['Supported Motherboard'] || 'N/A',
-        sidePanel: specs['Side Panel'] || 'N/A',
-        dimensions: specs['Dimensions'] || 'N/A'
+        'Tipo': specs['Type'] || '—',
+        'Factor MB': specs['Motherboard Form Factor'] || specs['Supported Motherboard'] || '—',
+        'GPU Máxima': specs['Maximum Video Card Length'] || '—',
+        'Panel Lateral': specs['Side Panel'] || '—'
       };
     case 'Monitor':
       return {
-        size: specs['Screen Size'] || specs['Display Size'] || 'N/A',
-        resolution: specs['Resolution'] || specs['Maximum Resolution'] || 'N/A',
-        refreshRate: specs['Refresh Rate'] || specs['Maximum Refresh Rate'] || 'N/A',
-        panelType: specs['Panel Type'] || 'N/A'
+        'Tamaño': specs['Screen Size'] || specs['Display Size'] || '—',
+        'Resolución': specs['Resolution'] || specs['Maximum Resolution'] || '—',
+        'Tasa de Refresco': specs['Refresh Rate'] || specs['Maximum Refresh Rate'] || '—',
+        'Tipo de Panel': specs['Panel Type'] || '—',
+        'Tiempo de Respuesta': specs['Response Time'] || '—'
       };
     default:
       return {};
@@ -129,7 +137,7 @@ const ComponentCard = ({ component, category, isSelected, onSelect, onViewDetail
           fill
           className="object-contain p-4"
           onError={(e) => {
-            e.target.src = '/images/default.jpg';
+            e.target.src = 'https://placehold.co/300x300/1f2937/ffffff?text=No+Image';
           }}
         />
       </div>
@@ -222,7 +230,7 @@ const ComponentDetailsModal = ({ component, category, isOpen, onClose }) => {
                 fill
                 className="object-contain p-4"
                 onError={(e) => {
-                  e.target.src = '/images/default.jpg';
+                  e.target.src = 'https://placehold.co/400x400/1f2937/ffffff?text=No+Image';
                 }}
               />
             </div>
@@ -358,6 +366,11 @@ const ArmarPcPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const type = searchParams.get('type');
+  const editId = searchParams.get('edit'); // ID del ensamble a editar
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingEnsambleId, setEditingEnsambleId] = useState(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
 
   const [selectedBoard, setSelectedBoard] = useState(null);
   const [selectedCPU, setSelectedCPU] = useState(null);
@@ -382,6 +395,18 @@ const ArmarPcPage = () => {
   // Estado para modal de detalles
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  // Estado para manejo de reintentos en ensamblaje automático
+  const [retryAttempts, setRetryAttempts] = useState({
+    motherboard: 0,
+    cpu: 0,
+    gpu: 0,
+    memory: 0,
+    storage: 0,
+    psu: 0,
+    case: 0,
+    monitor: 0
+  });
 
   const [formData, setFormData] = useState({
     procesador: '',
@@ -574,6 +599,460 @@ const ArmarPcPage = () => {
     }
   };
 
+  // ==================== AUTOMATIC ASSEMBLY LOGIC ====================
+  
+  // Helper function to select component based on type with retry support
+  const selectComponentByType = (components, assemblyType, skipIndex = 0) => {
+    if (!components || components.length === 0) return null;
+
+    // Filter out invalid prices (0, null, undefined, negative)
+    const validComponents = components.filter(comp => 
+      comp.precio && 
+      typeof comp.precio === 'number' && 
+      comp.precio > 0
+    );
+
+    if (validComponents.length === 0) return null;
+
+    // Calculate statistics to detect outliers
+    const prices = validComponents.map(c => c.precio);
+    const sortedPrices = [...prices].sort((a, b) => a - b);
+    
+    // Calculate IQR (Interquartile Range) for outlier detection
+    const q1Index = Math.floor(sortedPrices.length * 0.25);
+    const q3Index = Math.floor(sortedPrices.length * 0.75);
+    const q1 = sortedPrices[q1Index];
+    const q3 = sortedPrices[q3Index];
+    const iqr = q3 - q1;
+    
+    // Define outlier boundaries (1.5 * IQR is standard)
+    const lowerBound = q1 - (1.5 * iqr);
+    const upperBound = q3 + (1.5 * iqr);
+    
+    // Filter out extreme outliers
+    const cleanComponents = validComponents.filter(comp => 
+      comp.precio >= lowerBound && comp.precio <= upperBound
+    );
+
+    // If all components are filtered out, use valid components without outlier filtering
+    const finalComponents = cleanComponents.length > 0 ? cleanComponents : validComponents;
+
+    // Sort components by price (descending) to have consistent ordering
+    const sortedComponents = [...finalComponents].sort((a, b) => b.precio - a.precio);
+
+    // Check if skipIndex is beyond array length
+    if (skipIndex >= sortedComponents.length) return null;
+
+    let selectedIndex = skipIndex;
+
+    switch (assemblyType) {
+      case 'gaming':
+        // Gaming: Select highest performance (highest price typically)
+        selectedIndex = 0 + skipIndex;
+        break;
+      
+      case 'workstation':
+        // Workstation: Select second-best or mid-high range
+        selectedIndex = Math.min(1 + skipIndex, sortedComponents.length - 1);
+        break;
+      
+      case 'streaming':
+        // Streaming: Select mid-range components
+        const baseStreamingIndex = Math.min(1, Math.floor(sortedComponents.length / 4));
+        selectedIndex = Math.min(baseStreamingIndex + skipIndex, sortedComponents.length - 1);
+        break;
+      
+      case 'basic':
+        // Basic: Select most economical (lowest price) - work backwards with retry
+        selectedIndex = Math.max(0, sortedComponents.length - 1 - skipIndex);
+        break;
+      
+      default:
+        return null;
+    }
+
+    // Ensure index is within bounds
+    if (selectedIndex >= sortedComponents.length) return null;
+
+    return sortedComponents[selectedIndex];
+  };
+
+  // Effect to reset states when type changes
+  useEffect(() => {
+    if (type && ['gaming', 'workstation', 'streaming', 'basic'].includes(type)) {
+      // Reset all selections when switching assembly type
+      setCurrentStep(1);
+      setSelectedBoard(null);
+      setSelectedCPU(null);
+      setSelectedGPU(null);
+      setSelectedMemory(null);
+      setSelectedPSU(null);
+      setSelectedStorage(null);
+      setSelectedCase(null);
+      setSelectedMonitor(null);
+      setRetryAttempts({
+        motherboard: 0,
+        cpu: 0,
+        gpu: 0,
+        memory: 0,
+        storage: 0,
+        psu: 0,
+        case: 0,
+        monitor: 0
+      });
+      setFormData({
+        procesador: '',
+        motherboard: '',
+        ram: '',
+        almacenamiento: '',
+        gpu: '',
+        fuente: '',
+        gabinete: '',
+        monitor: '',
+        perifericos: '',
+        presupuesto: '',
+      });
+    }
+  }, [type]);
+
+  // Effect to load ensamble data when in edit mode
+  useEffect(() => {
+    const loadEnsambleForEdit = async () => {
+      if (!editId || !token) return;
+
+      setIsLoadingEdit(true);
+      setIsEditMode(true);
+      setEditingEnsambleId(editId);
+
+      try {
+        // Obtener todos los ensambles del usuario
+        const response = await axios.get('http://localhost:3001/api/obtener-ensambles-usuario', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        // Buscar el ensamble específico
+        const ensamble = response.data.ensambles.find(e => e.id_ensamble === parseInt(editId));
+        
+        if (!ensamble) {
+          alert('No se encontró el ensamble a editar');
+          router.push('/perfil');
+          return;
+        }
+
+        // Cargar el nombre
+        setAssembleName(ensamble.nombre_ensamble);
+
+        // Cargar los componentes
+        const componentes = ensamble.componentes;
+        
+        if (componentes['Motherboard']) {
+          setSelectedBoard(componentes['Motherboard']);
+          setFormData(prev => ({ ...prev, motherboard: componentes['Motherboard'].id_componente }));
+        }
+        
+        if (componentes['CPU']) {
+          setSelectedCPU(componentes['CPU']);
+          setFormData(prev => ({ ...prev, procesador: componentes['CPU'].id_componente }));
+        }
+        
+        if (componentes['Video Card']) {
+          setSelectedGPU(componentes['Video Card']);
+          setFormData(prev => ({ ...prev, gpu: componentes['Video Card'].id_componente }));
+        }
+        
+        if (componentes['Memory']) {
+          setSelectedMemory(componentes['Memory']);
+          setFormData(prev => ({ ...prev, ram: componentes['Memory'].id_componente }));
+        }
+        
+        if (componentes['Storage']) {
+          setSelectedStorage(componentes['Storage']);
+          setFormData(prev => ({ ...prev, almacenamiento: componentes['Storage'].id_componente }));
+        }
+        
+        if (componentes['Power Supply']) {
+          setSelectedPSU(componentes['Power Supply']);
+          setFormData(prev => ({ ...prev, fuente: componentes['Power Supply'].id_componente }));
+        }
+        
+        if (componentes['Case']) {
+          setSelectedCase(componentes['Case']);
+          setFormData(prev => ({ ...prev, gabinete: componentes['Case'].id_componente }));
+        }
+        
+        if (componentes['Monitor']) {
+          setSelectedMonitor(componentes['Monitor']);
+          setFormData(prev => ({ ...prev, monitor: componentes['Monitor'].id_componente }));
+        }
+
+        // Ir al paso final para ver el resumen
+        setCurrentStep(9);
+
+      } catch (error) {
+        console.error('Error al cargar ensamble para editar:', error);
+        alert('Error al cargar la configuración');
+        router.push('/perfil');
+      } finally {
+        setIsLoadingEdit(false);
+      }
+    };
+
+    loadEnsambleForEdit();
+  }, [editId, token, router]);
+
+  // Step 1: Auto-select Motherboard with retry
+  useEffect(() => {
+    if (isEditMode) return; // No auto-seleccionar en modo edición
+    if (!type || !['gaming', 'workstation', 'streaming', 'basic'].includes(type)) return;
+    if (!boards || boards.length === 0) return;
+    if (selectedBoard) return; // Already selected
+
+    const selected = selectComponentByType(boards, type, retryAttempts.motherboard);
+    if (selected) {
+      setSelectedBoard(selected);
+      setFormData(prev => ({
+        ...prev,
+        motherboard: selected.id_componente
+      }));
+      // Move to next step after a short delay
+      setTimeout(() => setCurrentStep(2), 400);
+    } else {
+      console.warn('No motherboard available for selection');
+    }
+  }, [type, boards, selectedBoard, retryAttempts.motherboard]);
+
+  // Step 2: Auto-select CPU with retry and backtrack
+  useEffect(() => {
+    if (isEditMode) return; // No auto-seleccionar en modo edición
+    if (!type || !['gaming', 'workstation', 'streaming', 'basic'].includes(type)) return;
+    if (!selectedBoard || !formData.motherboard) return;
+    if (selectedCPU) return; // Already selected
+    if (currentStep !== 2) return;
+
+    // Wait for CPUs to load
+    if (loadingCPUs) return;
+
+    // Check if CPUs are available
+    if (!cpus || cpus.length === 0) {
+      // No compatible CPUs - try next motherboard (max 5 attempts)
+      if (retryAttempts.motherboard < 5) {
+        console.warn(`No compatible CPUs found, trying next motherboard (attempt ${retryAttempts.motherboard + 1})...`);
+        setSelectedBoard(null);
+        setFormData(prev => ({ ...prev, motherboard: '' }));
+        setRetryAttempts(prev => ({ ...prev, motherboard: prev.motherboard + 1, cpu: 0 }));
+        setTimeout(() => setCurrentStep(1), 200);
+      } else {
+        console.error('Could not find compatible configuration after multiple attempts');
+      }
+      return;
+    }
+
+    const selected = selectComponentByType(cpus, type, retryAttempts.cpu);
+    if (selected) {
+      setSelectedCPU(selected);
+      setFormData(prev => ({
+        ...prev,
+        procesador: selected.id_componente
+      }));
+      setTimeout(() => setCurrentStep(3), 300);
+    } else {
+      // Tried all CPUs, backtrack to motherboard (max 5 attempts)
+      if (retryAttempts.motherboard < 5) {
+        console.warn(`Exhausted CPU options, trying next motherboard (attempt ${retryAttempts.motherboard + 1})...`);
+        setSelectedBoard(null);
+        setFormData(prev => ({ ...prev, motherboard: '' }));
+        setRetryAttempts(prev => ({ ...prev, motherboard: prev.motherboard + 1, cpu: 0 }));
+        setTimeout(() => setCurrentStep(1), 200);
+      } else {
+        console.error('Could not find compatible configuration after multiple attempts');
+      }
+    }
+  }, [type, selectedBoard, formData.motherboard, cpus, selectedCPU, currentStep, loadingCPUs, retryAttempts.cpu, retryAttempts.motherboard]);
+
+  // Step 3: Auto-select GPU with retry and backtrack
+  useEffect(() => {
+    if (isEditMode) return; // No auto-seleccionar en modo edición
+    if (!type || !['gaming', 'workstation', 'streaming', 'basic'].includes(type)) return;
+    if (!selectedCPU || !formData.procesador) return;
+    if (selectedGPU) return;
+    if (currentStep !== 3) return;
+
+    if (loadingGPUs) return;
+
+    if (!gpus || gpus.length === 0) {
+      if (retryAttempts.cpu < 3) {
+        console.warn(`No compatible GPUs found, trying next CPU (attempt ${retryAttempts.cpu + 1})...`);
+        setSelectedCPU(null);
+        setFormData(prev => ({ ...prev, procesador: '' }));
+        setRetryAttempts(prev => ({ ...prev, cpu: prev.cpu + 1, gpu: 0 }));
+        setTimeout(() => setCurrentStep(2), 200);
+      }
+      return;
+    }
+
+    const selected = selectComponentByType(gpus, type, retryAttempts.gpu);
+    if (selected) {
+      setSelectedGPU(selected);
+      setFormData(prev => ({
+        ...prev,
+        gpu: selected.id_componente
+      }));
+      setTimeout(() => setCurrentStep(4), 300);
+    } else if (retryAttempts.cpu < 3) {
+      console.warn(`Exhausted GPU options, trying next CPU (attempt ${retryAttempts.cpu + 1})...`);
+      setSelectedCPU(null);
+      setFormData(prev => ({ ...prev, procesador: '' }));
+      setRetryAttempts(prev => ({ ...prev, cpu: prev.cpu + 1, gpu: 0 }));
+      setTimeout(() => setCurrentStep(2), 200);
+    }
+  }, [type, selectedCPU, formData.procesador, gpus, selectedGPU, currentStep, loadingGPUs, retryAttempts.gpu, retryAttempts.cpu]);
+
+  // Step 4: Auto-select Memory with retry and backtrack
+  useEffect(() => {
+    if (isEditMode) return; // No auto-seleccionar en modo edición
+    if (!type || !['gaming', 'workstation', 'streaming', 'basic'].includes(type)) return;
+    if (!selectedGPU || !formData.gpu) return;
+    if (selectedMemory) return;
+    if (currentStep !== 4) return;
+
+    if (loadingMemory) return;
+
+    if (!memory || memory.length === 0) {
+      if (retryAttempts.gpu < 3) {
+        console.warn(`No compatible Memory found, trying next GPU (attempt ${retryAttempts.gpu + 1})...`);
+        setSelectedGPU(null);
+        setFormData(prev => ({ ...prev, gpu: '' }));
+        setRetryAttempts(prev => ({ ...prev, gpu: prev.gpu + 1, memory: 0 }));
+        setTimeout(() => setCurrentStep(3), 200);
+      }
+      return;
+    }
+
+    const selected = selectComponentByType(memory, type, retryAttempts.memory);
+    if (selected) {
+      setSelectedMemory(selected);
+      setFormData(prev => ({
+        ...prev,
+        ram: selected.id_componente
+      }));
+      setTimeout(() => setCurrentStep(5), 300);
+    } else if (retryAttempts.gpu < 3) {
+      console.warn(`Exhausted Memory options, trying next GPU (attempt ${retryAttempts.gpu + 1})...`);
+      setSelectedGPU(null);
+      setFormData(prev => ({ ...prev, gpu: '' }));
+      setRetryAttempts(prev => ({ ...prev, gpu: prev.gpu + 1, memory: 0 }));
+      setTimeout(() => setCurrentStep(3), 200);
+    }
+  }, [type, selectedGPU, formData.gpu, memory, selectedMemory, currentStep, loadingMemory, retryAttempts.memory, retryAttempts.gpu]);
+
+  // Step 5: Auto-select Storage (simplified - usually high compatibility)
+  useEffect(() => {
+    if (isEditMode) return; // No auto-seleccionar en modo edición
+    if (!type || !['gaming', 'workstation', 'streaming', 'basic'].includes(type)) return;
+    if (!selectedMemory || !formData.ram) return;
+    if (selectedStorage) return;
+    if (currentStep !== 5) return;
+
+    if (loadingDisks) return;
+
+    if (!disks || disks.length === 0) {
+      console.warn('No compatible Storage found');
+      return;
+    }
+
+    const selected = selectComponentByType(disks, type, retryAttempts.storage);
+    if (selected) {
+      setSelectedStorage(selected);
+      setFormData(prev => ({
+        ...prev,
+        almacenamiento: selected.id_componente
+      }));
+      setTimeout(() => setCurrentStep(6), 300);
+    }
+  }, [type, selectedMemory, formData.ram, disks, selectedStorage, currentStep, loadingDisks, retryAttempts.storage]);
+
+  // Step 6: Auto-select PSU (simplified - usually high compatibility)
+  useEffect(() => {
+    if (isEditMode) return; // No auto-seleccionar en modo edición
+    if (!type || !['gaming', 'workstation', 'streaming', 'basic'].includes(type)) return;
+    if (!selectedStorage || !formData.almacenamiento) return;
+    if (selectedPSU) return;
+    if (currentStep !== 6) return;
+
+    if (loadingPSUs) return;
+
+    if (!psus || psus.length === 0) {
+      console.warn('No compatible PSU found');
+      return;
+    }
+
+    const selected = selectComponentByType(psus, type, retryAttempts.psu);
+    if (selected) {
+      setSelectedPSU(selected);
+      setFormData(prev => ({
+        ...prev,
+        fuente: selected.id_componente
+      }));
+      setTimeout(() => setCurrentStep(7), 300);
+    }
+  }, [type, selectedStorage, formData.almacenamiento, psus, selectedPSU, currentStep, loadingPSUs, retryAttempts.psu]);
+
+  // Step 7: Auto-select Case (simplified - usually high compatibility)
+  useEffect(() => {
+    if (isEditMode) return; // No auto-seleccionar en modo edición
+    if (!type || !['gaming', 'workstation', 'streaming', 'basic'].includes(type)) return;
+    if (!selectedPSU || !formData.fuente) return;
+    if (selectedCase) return;
+    if (currentStep !== 7) return;
+
+    if (loadingCases) return;
+
+    if (!cases || cases.length === 0) {
+      console.warn('No compatible Case found');
+      return;
+    }
+
+    const selected = selectComponentByType(cases, type, retryAttempts.case);
+    if (selected) {
+      setSelectedCase(selected);
+      setFormData(prev => ({
+        ...prev,
+        gabinete: selected.id_componente
+      }));
+      setTimeout(() => setCurrentStep(8), 300);
+    }
+  }, [type, selectedPSU, formData.fuente, cases, selectedCase, currentStep, loadingCases, retryAttempts.case]);
+
+  // Step 8: Auto-select Monitor (simplified - usually high compatibility)
+  useEffect(() => {
+    if (isEditMode) return; // No auto-seleccionar en modo edición
+    if (!type || !['gaming', 'workstation', 'streaming', 'basic'].includes(type)) return;
+    if (!selectedCase || !formData.gabinete) return;
+    if (selectedMonitor) return;
+    if (currentStep !== 8) return;
+
+    if (loadingMonitors) return;
+
+    if (!monitors || monitors.length === 0) {
+      console.warn('No compatible Monitor found');
+      return;
+    }
+
+    const selected = selectComponentByType(monitors, type, retryAttempts.monitor);
+    if (selected) {
+      setSelectedMonitor(selected);
+      setFormData(prev => ({
+        ...prev,
+        monitor: selected.id_componente
+      }));
+      setTimeout(() => setCurrentStep(9), 300);
+    }
+  }, [type, selectedCase, formData.gabinete, monitors, selectedMonitor, currentStep, loadingMonitors, retryAttempts.monitor]);
+
+  // ==================== END AUTOMATIC ASSEMBLY LOGIC ====================
+
   // Función para filtrar componentes
   const filterComponents = (components) => {
     return components.filter(component => {
@@ -646,19 +1125,40 @@ const ArmarPcPage = () => {
     setSaveMessage('');
 
     try {
-      const response = await axios.post('http://localhost:3001/api/registrar-ensamble', {
-        nombre: assembleName,
-        componentes: requiredComponents
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      setSaveMessage('¡Configuración guardada exitosamente!');
-      setAssembleName('');
-      setTimeout(() => setSaveMessage(''), 3000);
+      if (isEditMode && editingEnsambleId) {
+        // Actualizar ensamble existente
+        const response = await axios.put(
+          `http://localhost:3001/api/modificar-ensamble/${editingEnsambleId}`,
+          {
+            nombre: assembleName,
+            componentes: requiredComponents
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        setSaveMessage('¡Configuración actualizada exitosamente!');
+        setTimeout(() => {
+          router.push('/perfil');
+        }, 1500);
+      } else {
+        // Crear nuevo ensamble
+        const response = await axios.post('http://localhost:3001/api/registrar-ensamble', {
+          nombre: assembleName,
+          componentes: requiredComponents
+        }, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        setSaveMessage('¡Configuración guardada exitosamente!');
+        setAssembleName('');
+        setTimeout(() => setSaveMessage(''), 3000);
+      }
     } catch (error) {
       console.error('Error al guardar el ensamble:', error);
       setSaveMessage(error.response?.data?.error || 'Error al guardar la configuración');
@@ -691,13 +1191,21 @@ const ArmarPcPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-20 px-4 sm:px-6 lg:px-8">
+      {isLoadingEdit ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Cargando configuración...</p>
+          </div>
+        </div>
+      ) : (
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Arma tu PC
+            {isEditMode ? 'Editar Configuración' : 'Arma tu PC'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Sigue los pasos para configurar tu PC ideal
+            {isEditMode ? 'Modifica los componentes de tu configuración' : 'Sigue los pasos para configurar tu PC ideal'}
           </p>
 
           {/* Precio Total en Tiempo Real */}
@@ -1330,7 +1838,7 @@ const ArmarPcPage = () => {
                 {/* Campo para guardar ensamble */}
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Guardar Configuración
+                    {isEditMode ? 'Actualizar Configuración' : 'Guardar Configuración'}
                   </h3>
                   <div className="flex gap-4 mb-4">
                     <div className="flex-1">
@@ -1355,7 +1863,7 @@ const ArmarPcPage = () => {
                             : 'bg-blue-600 text-white hover:bg-blue-700'
                         }`}
                       >
-                        {isSaving ? 'Guardando...' : 'Guardar'}
+                        {isSaving ? (isEditMode ? 'Actualizando...' : 'Guardando...') : (isEditMode ? 'Actualizar' : 'Guardar')}
                       </button>
                     </div>
                   </div>
@@ -1529,6 +2037,7 @@ const ArmarPcPage = () => {
           onClose={handleCloseDetails}
         />
       </div>
+      )}
     </div>
   );
 };

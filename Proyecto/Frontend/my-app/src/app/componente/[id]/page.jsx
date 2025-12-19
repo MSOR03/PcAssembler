@@ -159,7 +159,7 @@ export default function ComponenteDetallePage() {
                   fill
                   className="object-contain p-8"
                   onError={(e) => {
-                    e.target.src = '/images/default.jpg';
+                    e.target.src = 'https://placehold.co/600x600/1f2937/ffffff?text=No+Image';
                   }}
                 />
               </div>

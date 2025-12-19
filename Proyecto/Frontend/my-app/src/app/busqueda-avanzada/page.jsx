@@ -265,7 +265,7 @@ const BusquedaAvanzadaPage = () => {
                     fill
                     className="object-cover"
                     onError={(e) => {
-                      e.target.src = '/images/default.jpg';
+                      e.target.src = 'https://placehold.co/300x300/1f2937/ffffff?text=No+Image';
                     }}
                   />
                 </div>
@@ -326,7 +326,7 @@ const BusquedaAvanzadaPage = () => {
                       fill
                       className="object-cover rounded-lg"
                       onError={(e) => {
-                        e.target.src = '/images/default.jpg';
+                        e.target.src = 'https://placehold.co/600x600/1f2937/ffffff?text=No+Image';
                       }}
                     />
                   </div>

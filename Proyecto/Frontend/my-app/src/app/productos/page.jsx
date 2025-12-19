@@ -95,49 +95,66 @@ export default function ProductosPage() {
         return [
           { label: 'Núcleos', value: specs['Core Count'] || specs['# of CPU Cores'] || '—' },
           { label: 'Hilos', value: specs['Thread Count'] || specs['# of Threads'] || '—' },
-          { label: 'Frecuencia', value: specs['Base Clock'] || '—' }
+          { label: 'Frecuencia Base', value: specs['Performance Core Clock'] || specs['Base Clock'] || '—' },
+          { label: 'Frecuencia Turbo', value: specs['Performance Core Boost Clock'] || specs['Boost Clock'] || '—' },
+          { label: 'TDP', value: specs['TDP'] || '—' },
+          { label: 'Socket', value: specs['Socket'] || '—' }
         ];
       case 'Video Card':
         return [
-          { label: 'VRAM', value: specs['VRAM'] || specs['Video Memory'] || '—' },
-          { label: 'CUDA Cores', value: specs['CUDA Cores'] || specs['Stream Processors'] || '—' },
-          { label: 'Base Clock', value: specs['Base Clock'] || '—' }
+          { label: 'Memoria', value: specs['Memory'] || specs['VRAM'] || '—' },
+          { label: 'Chipset', value: specs['Chipset'] || '—' },
+          { label: 'CUDA/Stream', value: specs['CUDA Cores'] || specs['Stream Processors'] || '—' },
+          { label: 'Clock Base', value: specs['Core Clock'] || specs['Base Clock'] || '—' },
+          { label: 'Clock Boost', value: specs['Boost Clock'] || '—' },
+          { label: 'Interfaz', value: specs['Interface'] || '—' }
         ];
       case 'Memory':
         return [
           { label: 'Capacidad', value: specs['Capacity'] || '—' },
-          { label: 'Velocidad', value: specs['Speed'] || '—' },
-          { label: 'Tipo', value: specs['Type'] || '—' }
+          { label: 'Velocidad', value: specs['Speed'] || specs['Memory Speed'] || '—' },
+          { label: 'Tipo', value: specs['Type'] || specs['Memory Type'] || '—' },
+          { label: 'Latencia CAS', value: specs['CAS Latency'] || '—' },
+          { label: 'Módulos', value: specs['Modules'] || specs['# of Modules'] || '—' }
         ];
       case 'Motherboard':
         return [
           { label: 'Socket', value: specs['Socket / CPU'] || specs['Socket'] || '—' },
           { label: 'Chipset', value: specs['Chipset'] || '—' },
-          { label: 'Factor', value: specs['Form Factor'] || '—' }
+          { label: 'Factor de Forma', value: specs['Form Factor'] || '—' },
+          { label: 'Ranuras RAM', value: specs['Memory Slots'] || '—' },
+          { label: 'Tipo RAM', value: specs['Memory Type'] || '—' },
+          { label: 'Slots PCIe x16', value: specs['PCIe x16 Slots'] || '—' }
         ];
       case 'Storage':
         return [
           { label: 'Capacidad', value: specs['Capacity'] || '—' },
           { label: 'Tipo', value: specs['Type'] || specs['Form Factor'] || '—' },
-          { label: 'Interface', value: specs['Interface'] || '—' }
+          { label: 'Interfaz', value: specs['Interface'] || '—' },
+          { label: 'Lectura Secuencial', value: specs['Sequential Read'] || '—' },
+          { label: 'Escritura Secuencial', value: specs['Sequential Write'] || '—' }
         ];
       case 'Power Supply':
         return [
-          { label: 'Potencia', value: specs['Wattage'] || specs['Output Power'] || '—' },
-          { label: 'Certificación', value: specs['Efficiency'] || '—' },
-          { label: 'Modular', value: specs['Modular'] || '—' }
+          { label: 'Potencia', value: specs['Wattage'] || specs['Output Wattage'] || '—' },
+          { label: 'Certificación', value: specs['Efficiency Rating'] || specs['Efficiency'] || '—' },
+          { label: 'Modular', value: specs['Modular'] || specs['Type'] || '—' },
+          { label: 'Factor de Forma', value: specs['Form Factor'] || '—' }
         ];
       case 'Monitor':
         return [
           { label: 'Tamaño', value: specs['Screen Size'] || '—' },
           { label: 'Resolución', value: specs['Resolution'] || '—' },
-          { label: 'Frecuencia', value: specs['Refresh Rate'] || '—' }
+          { label: 'Tasa de Refresco', value: specs['Refresh Rate'] || '—' },
+          { label: 'Tipo de Panel', value: specs['Panel Type'] || '—' },
+          { label: 'Tiempo de Respuesta', value: specs['Response Time'] || '—' }
         ];
       case 'Case':
         return [
-          { label: 'Factor', value: specs['Motherboard Form Factor'] || '—' },
-          { label: 'GPU Max', value: specs['Maximum Video Card Length'] || '—' },
-          { label: 'Bahías', value: specs['Internal Bays'] || '—' }
+          { label: 'Tipo', value: specs['Type'] || '—' },
+          { label: 'Factor MB', value: specs['Motherboard Form Factor'] || '—' },
+          { label: 'GPU Máx', value: specs['Maximum Video Card Length'] || '—' },
+          { label: 'Ventiladores', value: specs['Front Panel USB'] || '—' }
         ];
       default:
         return [];
@@ -249,7 +266,7 @@ export default function ProductosPage() {
                       fill
                       className="object-contain p-4"
                       onError={(e) => {
-                        e.target.src = '/images/default.jpg';
+                        e.target.src = 'https://placehold.co/400x400/1f2937/ffffff?text=No+Image';
                       }}
                     />
                     <div className="absolute top-4 left-4">
@@ -314,7 +331,7 @@ export default function ProductosPage() {
                       fill
                       className="object-contain p-8"
                       onError={(e) => {
-                        e.target.src = '/images/default.jpg';
+                        e.target.src = 'https://placehold.co/600x600/1f2937/ffffff?text=No+Image';
                       }}
                     />
                     <div className="absolute top-6 left-6">
@@ -342,13 +359,13 @@ export default function ProductosPage() {
                     </h3>
 
                     {/* Especificaciones destacadas para la tarjeta grande */}
-                    <div className="grid grid-cols-3 gap-3 mb-6">
-                      {getFeaturedSpecs(product).map((spec, index) => (
-                        <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl px-4 py-3 text-center border border-blue-100 dark:border-blue-800">
-                          <div className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+                      {getFeaturedSpecs(product).slice(0, 6).map((spec, index) => (
+                        <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl px-3 py-2 text-center border border-blue-100 dark:border-blue-800">
+                          <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-1 truncate">
                             {spec.label}
                           </div>
-                          <div className="text-lg font-bold text-gray-900 dark:text-white">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white truncate" title={spec.value}>
                             {spec.value}
                           </div>
                         </div>
@@ -379,7 +396,7 @@ export default function ProductosPage() {
                       fill
                       className="object-contain p-4"
                       onError={(e) => {
-                        e.target.src = '/images/default.jpg';
+                        e.target.src = 'https://placehold.co/400x400/1f2937/ffffff?text=No+Image';
                       }}
                     />
                     <div className="absolute top-4 left-4">
@@ -407,13 +424,13 @@ export default function ProductosPage() {
                     </h3>
 
                     {/* Especificaciones destacadas */}
-                    <div className="grid grid-cols-3 gap-2 mb-6">
-                      {getFeaturedSpecs(product).map((spec, index) => (
-                        <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-3 text-center">
-                          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
+                    <div className="grid grid-cols-2 gap-2 mb-6">
+                      {getFeaturedSpecs(product).slice(0, 6).map((spec, index) => (
+                        <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-2 text-center">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1 truncate">
                             {spec.label}
                           </div>
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          <div className="text-xs font-semibold text-gray-900 dark:text-white truncate" title={spec.value}>
                             {spec.value}
                           </div>
                         </div>

@@ -1,6 +1,6 @@
 // Función para construir URL de imagen desde el formato actual
 export const getImageUrl = (imagePath) => {
-  if (!imagePath) return '/images/default.jpg';
+  if (!imagePath) return 'https://placehold.co/300x300/1f2937/ffffff?text=No+Image';
 
   // Si ya es una URL completa (HTTP/HTTPS), retornarla
   if (imagePath.startsWith('http')) {
@@ -29,7 +29,7 @@ export const getImageUrl = (imagePath) => {
     return `/images/${folderName}/${fileName}`;
   } catch (error) {
     console.warn('Error building image URL, using fallback:', error);
-    return '/images/default.jpg';
+    return 'https://placehold.co/300x300/1f2937/ffffff?text=No+Image';
   }
 };
 

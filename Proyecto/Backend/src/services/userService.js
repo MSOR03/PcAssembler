@@ -105,11 +105,16 @@ export async function authenticateUser(correo, contrasena) {
 }
 
 // Configurar el transporte de correo
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 const transporter = nodemailer.createTransport({
-  service: "Gmail", // Proveedor de correo (puede ser Gmail, Outlook, etc.)
+  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // true para 465, false para otros puertos
   auth: {
-    user: process.env.EMAIL_USER, // Tu dirección de correo electrónico
-    pass: process.env.EMAIL_PASS, // La contraseña de tu correo electrónico
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS, // App Password de Gmail (16 caracteres)
   },
 });
 
@@ -131,15 +136,42 @@ export async function generatePasswordResetToken(correo) {
 // Función para enviar correo electrónico de restablecimiento de contraseña
 export async function sendPasswordResetEmail(correo, token) {
   try {
+    // En desarrollo, solo mostrar el token en consola
+    if (isDevelopment) {
+      console.log('\n========================================');
+      console.log('🔧 MODO DESARROLLO - EMAIL NO ENVIADO');
+      console.log('========================================');
+      console.log('Para:', correo);
+      console.log('Token de recuperación:', token);
+      console.log('URL de recuperación:');
+      console.log(`http://localhost:3000/reset-password?token=${token}`);
+      console.log('========================================\n');
+      return; // No enviar email en desarrollo
+    }
+
+    // En producción, enviar email real
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: correo,
-      subject: "Restablecimiento de contraseña",
-      text: `Haz clic en el siguiente enlace para restablecer tu contraseña: http://localhost:3001/reset-password?token=${token}`,
+      subject: "Restablecimiento de contraseña - PC Builder",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Restablecer Contraseña</h2>
+          <p>Has solicitado restablecer tu contraseña.</p>
+          <p>Haz clic en el siguiente botón para continuar:</p>
+          <a href="http://localhost:3000/reset-password?token=${token}" 
+             style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0;">
+            Restablecer Contraseña
+          </a>
+          <p style="color: #6b7280; font-size: 14px;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
+          <p style="color: #6b7280; font-size: 14px;">Este enlace expirará en 1 hora.</p>
+        </div>
+      `,
+      text: `Haz clic en el siguiente enlace para restablecer tu contraseña: http://localhost:3000/reset-password?token=${token}`,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log("Password reset email sent");
+    console.log("Password reset email sent to:", correo);
   } catch (error) {
     console.error("Error sending password reset email:", error);
     throw error;
