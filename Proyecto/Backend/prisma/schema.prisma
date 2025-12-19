@@ -42,9 +42,13 @@ model Ensamble {
   nombre           String
   costo_total      Float   @default(0)
   fecha_creacion   DateTime @default(now())
+  fecha_modificacion DateTime @default(now())
+  token_compartir  String? @unique
+  es_publico       Boolean @default(false)
   Usuario          Usuario @relation(fields: [id_usuario], references: [id_usuario])
   Ensamble_Componente Ensamble_Componente[]
   Ensambles_Top    Ensambles_Top?
+  EvaluacionIA     EvaluacionIA?
 }
 
 model Ensamble_Componente {
@@ -95,4 +99,22 @@ model CompatibilidadSocketChipset {
   socket     String
   chipset    String
   Componentes Componente[]
+}
+
+// Tabla para almacenar evaluaciones de IA
+model EvaluacionIA {
+  id_evaluacion      Int      @id @default(autoincrement())
+  id_ensamble        Int      @unique
+  puntuacion_general Float?
+  resumen            String?
+  puntos_fuertes     Json?    // Array de strings
+  puntos_debiles     Json?    // Array de strings
+  compatibilidad     Json?    // { estado, detalles }
+  balance            Json?    // { cpu_gpu, ram, almacenamiento, fuente }
+  uso_recomendado    Json?    // Array de strings
+  recomendaciones    Json?    // Array de strings
+  conflictos         Json?    // Array de strings
+  precio_valor       String?
+  fecha_evaluacion   DateTime @default(now())
+  Ensamble           Ensamble @relation(fields: [id_ensamble], references: [id_ensamble], onDelete: Cascade)
 }

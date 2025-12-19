@@ -310,6 +310,7 @@ export const modificarEnsamble = async (req, res) => {
         data: {
           nombre,
           costo_total: costoTotal,
+          fecha_modificacion: new Date(),
           Ensamble_Componente: {
             deleteMany: {}, // Eliminar relaciones existentes
             create: componentes.map((id_componente) => ({
@@ -317,6 +318,11 @@ export const modificarEnsamble = async (req, res) => {
             })),
           },
         },
+      });
+
+      // Eliminar evaluación de IA existente (ya no es válida)
+      await prisma.evaluacionIA.deleteMany({
+        where: { id_ensamble: parseInt(id_ensamble) }
       });
     } else if (nombre) {
       // Solo actualizar el nombre
