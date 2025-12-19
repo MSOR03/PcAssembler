@@ -218,17 +218,17 @@ export default function ComponenteDetallePage() {
                 </div>
               )}
 
-              {/* Descripción */}
-              {componente.descripcion && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Descripción
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                    {componente.descripcion}
-                  </p>
+              {/* Información del Producto */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Información
+                </h3>
+                <div className="space-y-2 text-gray-600 dark:text-gray-300">
+                  <p><span className="font-semibold">Categoría:</span> {componente.categoria}</p>
+                  <p><span className="font-semibold">Marca:</span> {componente.marca}</p>
+                  <p><span className="font-semibold">Nombre:</span> {componente.nombre}</p>
                 </div>
-              )}
+              </div>
 
               {/* Acciones */}
               <div className="flex gap-3">

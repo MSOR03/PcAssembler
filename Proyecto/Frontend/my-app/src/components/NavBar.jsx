@@ -196,6 +196,13 @@ const NavBar = () => {
             }`}>
               Armar PC
             </Link>
+            <Link href="/busqueda-avanzada" className={`px-3 py-2 rounded-md text-sm font-medium ${
+              isHome 
+                ? 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+                : 'text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+            }`}>
+              Búsqueda Avanzada
+            </Link>
             <Link href="/contacto" className={`px-3 py-2 rounded-md text-sm font-medium ${
               isHome 
                 ? 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
@@ -302,6 +309,16 @@ const NavBar = () => {
                 : 'text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
             }`}>
               Armar PC
+            </Link>
+            <Link 
+              href="/busqueda-avanzada" 
+              onClick={() => setIsOpen(false)}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+              isHome 
+                ? 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+                : 'text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+            }`}>
+              Búsqueda Avanzada
             </Link>
             <Link 
               href="/contacto" 

@@ -51,7 +51,7 @@ export const getAllComponents = async (req, res) => {
         marca: true,
         especificaciones: true,
         imagenUrl: true,
-        descripcion: true,
+        averageRating: true,
       },
       orderBy: {
         precio: 'asc'

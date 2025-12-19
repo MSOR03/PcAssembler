@@ -26,7 +26,7 @@ export default function ProductosPage() {
           .map((product, index) => ({
             id: product.id_componente,
             name: product.nombre,
-            description: product.descripcion || `Componente ${product.categoria} de alta calidad`,
+            description: `${product.marca} • ${product.categoria}`,
             price: Math.round(product.precio || product.averagePrice || 0),
             image: getImageUrl(product.imagenUrl),
             category: getCategoryDisplayName(product.categoria),
@@ -87,7 +87,16 @@ export default function ProductosPage() {
 
   // Función para obtener especificaciones destacadas
   const getFeaturedSpecs = (product) => {
-    const specs = product.specs || {};
+    // Parsear especificaciones si vienen como string
+    let specs = product.specs;
+    if (typeof specs === 'string') {
+      try {
+        specs = JSON.parse(specs);
+      } catch (e) {
+        specs = {};
+      }
+    }
+    specs = specs || {};
     const category = product.originalCategory;
 
     switch (category) {
@@ -95,69 +104,55 @@ export default function ProductosPage() {
         return [
           { label: 'Núcleos', value: specs['Core Count'] || specs['# of CPU Cores'] || '—' },
           { label: 'Hilos', value: specs['Thread Count'] || specs['# of Threads'] || '—' },
-          { label: 'Frecuencia Base', value: specs['Performance Core Clock'] || specs['Base Clock'] || '—' },
-          { label: 'Frecuencia Turbo', value: specs['Performance Core Boost Clock'] || specs['Boost Clock'] || '—' },
-          { label: 'TDP', value: specs['TDP'] || '—' },
-          { label: 'Socket', value: specs['Socket'] || '—' }
+          { label: 'Frecuencia', value: specs['Performance Core Clock'] || specs['Base Clock'] || '—' }
         ];
       case 'Video Card':
         return [
           { label: 'Memoria', value: specs['Memory'] || specs['VRAM'] || '—' },
           { label: 'Chipset', value: specs['Chipset'] || '—' },
-          { label: 'CUDA/Stream', value: specs['CUDA Cores'] || specs['Stream Processors'] || '—' },
-          { label: 'Clock Base', value: specs['Core Clock'] || specs['Base Clock'] || '—' },
-          { label: 'Clock Boost', value: specs['Boost Clock'] || '—' },
-          { label: 'Interfaz', value: specs['Interface'] || '—' }
+          { label: 'Boost Clock', value: specs['Boost Clock'] || specs['Core Clock'] || '—' }
         ];
       case 'Memory':
         return [
           { label: 'Capacidad', value: specs['Capacity'] || '—' },
           { label: 'Velocidad', value: specs['Speed'] || specs['Memory Speed'] || '—' },
-          { label: 'Tipo', value: specs['Type'] || specs['Memory Type'] || '—' },
-          { label: 'Latencia CAS', value: specs['CAS Latency'] || '—' },
-          { label: 'Módulos', value: specs['Modules'] || specs['# of Modules'] || '—' }
+          { label: 'Tipo', value: specs['Type'] || specs['Memory Type'] || '—' }
         ];
       case 'Motherboard':
         return [
           { label: 'Socket', value: specs['Socket / CPU'] || specs['Socket'] || '—' },
           { label: 'Chipset', value: specs['Chipset'] || '—' },
-          { label: 'Factor de Forma', value: specs['Form Factor'] || '—' },
-          { label: 'Ranuras RAM', value: specs['Memory Slots'] || '—' },
-          { label: 'Tipo RAM', value: specs['Memory Type'] || '—' },
-          { label: 'Slots PCIe x16', value: specs['PCIe x16 Slots'] || '—' }
+          { label: 'Formato', value: specs['Form Factor'] || '—' }
         ];
       case 'Storage':
         return [
           { label: 'Capacidad', value: specs['Capacity'] || '—' },
           { label: 'Tipo', value: specs['Type'] || specs['Form Factor'] || '—' },
-          { label: 'Interfaz', value: specs['Interface'] || '—' },
-          { label: 'Lectura Secuencial', value: specs['Sequential Read'] || '—' },
-          { label: 'Escritura Secuencial', value: specs['Sequential Write'] || '—' }
+          { label: 'Interfaz', value: specs['Interface'] || '—' }
         ];
       case 'Power Supply':
         return [
           { label: 'Potencia', value: specs['Wattage'] || specs['Output Wattage'] || '—' },
           { label: 'Certificación', value: specs['Efficiency Rating'] || specs['Efficiency'] || '—' },
-          { label: 'Modular', value: specs['Modular'] || specs['Type'] || '—' },
-          { label: 'Factor de Forma', value: specs['Form Factor'] || '—' }
+          { label: 'Modular', value: specs['Modular'] || specs['Type'] || '—' }
         ];
       case 'Monitor':
         return [
           { label: 'Tamaño', value: specs['Screen Size'] || '—' },
           { label: 'Resolución', value: specs['Resolution'] || '—' },
-          { label: 'Tasa de Refresco', value: specs['Refresh Rate'] || '—' },
-          { label: 'Tipo de Panel', value: specs['Panel Type'] || '—' },
-          { label: 'Tiempo de Respuesta', value: specs['Response Time'] || '—' }
+          { label: 'Tasa Refresco', value: specs['Refresh Rate'] || '—' }
         ];
       case 'Case':
         return [
           { label: 'Tipo', value: specs['Type'] || '—' },
-          { label: 'Factor MB', value: specs['Motherboard Form Factor'] || '—' },
-          { label: 'GPU Máx', value: specs['Maximum Video Card Length'] || '—' },
-          { label: 'Ventiladores', value: specs['Front Panel USB'] || '—' }
+          { label: 'Color', value: specs['Color'] || '—' },
+          { label: 'Panel Lateral', value: specs['Side Panel'] || '—' }
         ];
       default:
-        return [];
+        const entries = Object.entries(specs).slice(0, 3);
+        return entries.length > 0 
+          ? entries.map(([key, value]) => ({ label: key, value: value || '—' }))
+          : [{ label: 'Sin specs', value: '—' }];
     }
   };
 
@@ -309,7 +304,7 @@ export default function ProductosPage() {
 
                     <div className="text-center mt-auto">
                       <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                        ${product.price}
+                        ${Math.round(product.price)}
                       </span>
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         USD
@@ -374,7 +369,7 @@ export default function ProductosPage() {
 
                     <div className="text-center">
                       <span className="text-5xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                        ${product.price}
+                        ${Math.round(product.price)}
                       </span>
                       <div className="text-lg text-gray-500 dark:text-gray-400 mt-2">
                         ⭐ Producto Destacado ⭐
@@ -439,7 +434,7 @@ export default function ProductosPage() {
 
                     <div className="text-center mt-auto">
                       <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                        ${product.price}
+                        ${Math.round(product.price)}
                       </span>
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         USD

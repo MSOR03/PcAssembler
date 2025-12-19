@@ -167,9 +167,9 @@ const ComponentCard = ({ component, category, isSelected, onSelect, onViewDetail
         {/* Especificaciones */}
         <ComponentSpecs component={component} category={category} />
 
-        {/* Descripción */}
-        <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
-          {component.descripcion}
+        {/* Información */}
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+          {component.marca} • {component.categoria}
         </p>
 
         {/* Botón de detalles */}
