@@ -265,3 +265,156 @@ export const obtenerEvaluacionEnsamble = async (req, res) => {
     });
   }
 };
+
+/**
+ * Evalúa componente paso a paso (SIN IA - solo lógica)
+ */
+export const evaluarComponentePasoAPaso = async (req, res) => {
+  try {
+    const { analyzeCPU, analyzeGPU, analyzeRAM, analyzeStorage, analyzePSU, detectBottleneck } = 
+      await import('../services/performanceAnalyzer.js');
+
+    const { componentType, componentId, currentComponents } = req.body;
+
+    if (!componentType || !componentId) {
+      return res.status(400).json({ error: 'Tipo y ID de componente requeridos' });
+    }
+
+    const component = await prisma.componente.findUnique({
+      where: { id_componente: parseInt(componentId) }
+    });
+
+    if (!component) {
+      return res.status(404).json({ error: 'Componente no encontrado' });
+    }
+
+    let analysis = {};
+
+    switch (componentType.toLowerCase()) {
+      case 'cpu':
+        analysis = analyzeCPU(component);
+        break;
+      
+      case 'video card':
+      case 'gpu':
+        analysis = analyzeGPU(component);
+        // Si hay CPU, verificar bottleneck
+        if (currentComponents?.cpu) {
+          const cpuComp = await prisma.componente.findUnique({
+            where: { id_componente: parseInt(currentComponents.cpu) }
+          });
+          if (cpuComp) {
+            const cpuAnalysis = analyzeCPU(cpuComp);
+            analysis.bottleneckCheck = detectBottleneck(cpuAnalysis, analysis);
+          }
+        }
+        break;
+      
+      case 'memory':
+      case 'ram':
+        analysis = analyzeRAM(component);
+        break;
+      
+      case 'storage':
+        analysis = analyzeStorage(component);
+        break;
+      
+      case 'power supply':
+      case 'psu':
+        let cpuAnalysis = null;
+        let gpuAnalysis = null;
+        
+        if (currentComponents?.cpu) {
+          const cpuComp = await prisma.componente.findUnique({
+            where: { id_componente: parseInt(currentComponents.cpu) }
+          });
+          if (cpuComp) cpuAnalysis = analyzeCPU(cpuComp);
+        }
+        
+        if (currentComponents?.gpu) {
+          const gpuComp = await prisma.componente.findUnique({
+            where: { id_componente: parseInt(currentComponents.gpu) }
+          });
+          if (gpuComp) gpuAnalysis = analyzeGPU(gpuComp);
+        }
+        
+        analysis = analyzePSU(component, cpuAnalysis, gpuAnalysis);
+        break;
+      
+      default:
+        analysis = { score: 70, tier: 'B', status: 'bueno', message: '✅ Componente Compatible' };
+    }
+
+    res.status(200).json({
+      success: true,
+      component: {
+        id: component.id_componente,
+        nombre: component.nombre,
+        categoria: component.categoria,
+        precio: component.precio
+      },
+      analysis
+    });
+
+  } catch (error) {
+    console.error('Error al evaluar componente:', error);
+    res.status(500).json({ error: 'Error al evaluar componente' });
+  }
+};
+
+/**
+ * Análisis completo del ensamble (SIN IA - solo lógica)
+ */
+export const analizarEnsambleCompleto = async (req, res) => {
+  try {
+    const { analyzeCompleteSystem } = await import('../services/performanceAnalyzer.js');
+    const { componentIds } = req.body;
+
+    if (!componentIds || Object.keys(componentIds).length === 0) {
+      return res.status(400).json({ error: 'IDs de componentes requeridos' });
+    }
+
+    const components = {};
+    
+    if (componentIds.cpu) {
+      components.cpu = await prisma.componente.findUnique({
+        where: { id_componente: parseInt(componentIds.cpu) }
+      });
+    }
+    
+    if (componentIds.gpu) {
+      components.gpu = await prisma.componente.findUnique({
+        where: { id_componente: parseInt(componentIds.gpu) }
+      });
+    }
+    
+    if (componentIds.ram) {
+      components.ram = await prisma.componente.findUnique({
+        where: { id_componente: parseInt(componentIds.ram) }
+      });
+    }
+    
+    if (componentIds.storage) {
+      components.storage = await prisma.componente.findUnique({
+        where: { id_componente: parseInt(componentIds.storage) }
+      });
+    }
+    
+    if (componentIds.psu) {
+      components.psu = await prisma.componente.findUnique({
+        where: { id_componente: parseInt(componentIds.psu) }
+      });
+    }
+
+    const analysis = analyzeCompleteSystem(components);
+
+    res.status(200).json({
+      success: true,
+      analysis
+    });
+
+  } catch (error) {
+    console.error('Error al analizar ensamble:', error);
+    res.status(500).json({ error: 'Error al analizar ensamble' });
+  }
+};
